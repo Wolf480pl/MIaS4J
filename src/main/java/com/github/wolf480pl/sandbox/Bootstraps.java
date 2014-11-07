@@ -31,7 +31,7 @@ public class Bootstraps {
     }
 
     public static CallSite wrapInvoke(MethodHandles.Lookup caller, String invokedName, MethodType invokedType, int opcode, String owner, MethodType originalType) throws NoSuchMethodException,
-            IllegalAccessException,    ClassNotFoundException {
+    IllegalAccessException, ClassNotFoundException {
         System.err.println(caller + " wants " + owner + "." + invokedName + " " + invokedType);
         Class<?> ownerCls = caller.lookupClass().getClassLoader().loadClass(owner);
         final MethodHandle handle;
@@ -58,6 +58,11 @@ public class Bootstraps {
                 throw new IllegalArgumentException("Unknown invoke opcode: " + opcode);
         }
         return new ConstantCallSite(handle);
+    }
+
+    public static CallSite wrapConstructor(MethodHandles.Lookup caller, String invokedName, MethodType invokedType, String owner, MethodType originalType) throws NoSuchMethodException,
+    IllegalAccessException, ClassNotFoundException {
+        return wrapInvoke(caller, "<init>", invokedType, Opcodes.INVOKESPECIAL, owner, originalType);
     }
 
     public static CallSite wrapInvokeDynamic(MethodHandles.Lookup caller, String invokedName, MethodType invokedType, Object... args) {

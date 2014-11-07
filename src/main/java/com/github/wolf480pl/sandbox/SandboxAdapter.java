@@ -46,6 +46,10 @@ public class SandboxAdapter extends ClassVisitor {
         public static final String WRAPINVOKE_DESC = Type.getMethodDescriptor(getType(CallSite.class), getType(MethodHandles.Lookup.class), getType(String.class), getType(MethodType.class),
                 Type.INT_TYPE, getType(String.class), getType(MethodType.class));
 
+        public static final String WRAPCONSTRUCTOR_NAME = "wrapConstructor";
+        public static final String WRAPCONSTRUCTOR_DESC = Type.getMethodDescriptor(getType(CallSite.class), getType(MethodHandles.Lookup.class), getType(String.class), getType(MethodType.class),
+                getType(String.class), getType(MethodType.class));
+
         private boolean skip;
 
         public MethodAdapter(MethodVisitor mv, boolean constructor) {
@@ -60,8 +64,27 @@ public class SandboxAdapter extends ClassVisitor {
                 mv.visitMethodInsn(opcode, owner, name, desc, itf);
                 return;
             }
+
             Type ownerType = Type.getObjectType(owner);
             Type methType = Type.getMethodType(desc);
+
+            if (opcode == Opcodes.INVOKESPECIAL) {
+                if (name.equals("<init>")) {
+                    Type nt = Type.getMethodType(ownerType, methType.getArgumentTypes());
+                    desc = nt.getDescriptor();
+
+                    mv.visitInvokeDynamicInsn("init", desc,
+                            new Handle(Opcodes.H_INVOKESTATIC, Type.getInternalName(Bootstraps.class), WRAPCONSTRUCTOR_NAME, WRAPCONSTRUCTOR_DESC),
+                            ownerType.getClassName(), methType);
+                    return;
+                } else {
+                    // private method, leave them alone
+                    //TODO: Make sure there's no other uses for invokespecial
+                    mv.visitMethodInsn(opcode, owner, name, desc, itf);
+                    return;
+                }
+            }
+
             if (opcode != Opcodes.INVOKESTATIC) {
                 Type[] argTypes = methType.getArgumentTypes();
                 Type[] newArgTypes = new Type[argTypes.length + 1];
@@ -70,6 +93,7 @@ public class SandboxAdapter extends ClassVisitor {
                 Type nt = Type.getMethodType(methType.getReturnType(), newArgTypes);
                 desc = nt.getDescriptor();
             }
+
             mv.visitInvokeDynamicInsn(name, desc,
                     new Handle(Opcodes.H_INVOKESTATIC, Type.getInternalName(Bootstraps.class), WRAPINVOKE_NAME, WRAPINVOKE_DESC),
                     opcode, ownerType.getClassName(), methType);
@@ -85,6 +109,14 @@ public class SandboxAdapter extends ClassVisitor {
         public void visitLdcInsn(Object cst) {
             // TODO
             super.visitLdcInsn(cst);
+        }
+
+        @Override
+        public void visitTypeInsn(int opcode, String type) {
+            if (opcode == Opcodes.NEW) {
+                return; // We remove it because we convert <init> to invokedynamic
+            }
+            mv.visitTypeInsn(opcode, type);
         }
     }
 

@@ -77,11 +77,6 @@ public class SandboxAdapter extends ClassVisitor {
                             new Handle(Opcodes.H_INVOKESTATIC, Type.getInternalName(Bootstraps.class), WRAPCONSTRUCTOR_NAME, WRAPCONSTRUCTOR_DESC),
                             ownerType.getClassName(), methType);
                     return;
-                } else {
-                    // private method, leave them alone
-                    //TODO: Make sure there's no other uses for invokespecial
-                    mv.visitMethodInsn(opcode, owner, name, desc, itf);
-                    return;
                 }
             }
 

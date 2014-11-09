@@ -51,7 +51,7 @@ public class Bootstraps {
                 if (invokedName == "<init>") {
                     handle = caller.findConstructor(ownerCls, originalType);
                 } else {
-                    handle = caller.findSpecial(ownerCls, invokedName, originalType, caller.getClass());
+                    handle = caller.findSpecial(ownerCls, invokedName, originalType, caller.lookupClass());
                 }
                 break;
             default:

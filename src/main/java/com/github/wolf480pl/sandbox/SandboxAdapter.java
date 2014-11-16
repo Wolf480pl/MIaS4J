@@ -30,16 +30,28 @@ import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 
+import com.github.wolf480pl.sandbox.util.WrappedCheckedException;
+
 public class SandboxAdapter extends ClassVisitor {
+    private final RewritePolicy policy;
 
     public SandboxAdapter(ClassVisitor cv) {
+        this(cv, new RewritePolicy() {
+            @Override
+            public boolean shouldIntercept(InvocationType type, Type owner, String name, Type desc) throws RewriteAbortException {
+                return true;
+            }
+        });
+    }
+
+    public SandboxAdapter(ClassVisitor cv, RewritePolicy policy) {
         super(Opcodes.ASM5, cv);
-        // TODO Auto-generated constructor stub
+        this.policy = policy;
     }
 
     @Override
     public MethodVisitor visitMethod(int access, String name, String desc, String signature, String[] exceptions) {
-        return new MethodAdapter(cv.visitMethod(access, name, desc, signature, exceptions), name.equals("<init>"));
+        return new MethodAdapter(cv.visitMethod(access, name, desc, signature, exceptions), policy, name.equals("<init>"));
     }
 
     public static class MethodAdapter extends MethodVisitor {
@@ -55,11 +67,13 @@ public class SandboxAdapter extends ClassVisitor {
         public static final String WRAPHANDLE_DESC = Type.getMethodDescriptor(getType(CallSite.class), getType(MethodHandles.Lookup.class), getType(String.class), getType(MethodType.class),
                 Type.INT_TYPE, getType(String.class), getType(MethodType.class));
 
+        private final RewritePolicy policy;
         private boolean skip;
 
-        public MethodAdapter(MethodVisitor mv, boolean constructor) {
+        public MethodAdapter(MethodVisitor mv, RewritePolicy policy, boolean constructor) {
             super(Opcodes.ASM5, mv);
             this.skip = constructor;
+            this.policy = policy;
         }
 
         @Override
@@ -70,19 +84,39 @@ public class SandboxAdapter extends ClassVisitor {
                 return;
             }
 
+            InvocationType invtype;
+            if (opcode == Opcodes.INVOKESPECIAL && name.equals("<init>")) {
+                invtype = InvocationType.INVOKENEWSPECIAL;
+            } else {
+                invtype = InvocationType.fromInstruction(opcode);
+            }
+
             Type ownerType = Type.getObjectType(owner);
             Type methType = Type.getMethodType(desc);
 
-            if (opcode == Opcodes.INVOKESPECIAL) {
-                if (name.equals("<init>")) {
-                    Type nt = Type.getMethodType(ownerType, methType.getArgumentTypes());
-                    desc = nt.getDescriptor();
-
-                    mv.visitInvokeDynamicInsn("init", desc,
-                            new Handle(Opcodes.H_INVOKESTATIC, Type.getInternalName(Bootstraps.class), WRAPCONSTRUCTOR_NAME, WRAPCONSTRUCTOR_DESC),
-                            ownerType.getClassName(), methType);
+            try {
+                if (!policy.shouldIntercept(invtype, ownerType, name, methType)) {
+                    if (invtype == InvocationType.INVOKENEWSPECIAL) {
+                        // We ate NEW, so now we have to give it back, since we're not rewriting the call
+                        mv.visitTypeInsn(Opcodes.NEW, ownerType.getInternalName());
+                    }
+                    mv.visitMethodInsn(opcode, owner, name, desc, itf);
                     return;
                 }
+            } catch (RewriteAbortException e) {
+                throw new WrappedCheckedException(e);
+            }
+
+            if (invtype == InvocationType.INVOKENEWSPECIAL) {
+                Type nt = Type.getMethodType(ownerType, methType.getArgumentTypes());
+                desc = nt.getDescriptor();
+
+                /*mv.visitInvokeDynamicInsn(name, desc,
+                        new Handle(Opcodes.H_INVOKESTATIC, Type.getInternalName(Bootstraps.class), WRAPINVOKE_NAME, WRAPINVOKE_DESC),
+                        invtype.id(), ownerType.getClassName(), methType);*/
+                mv.visitInvokeDynamicInsn("init", desc, new Handle(Opcodes.H_INVOKESTATIC, Type.getInternalName(Bootstraps.class), WRAPCONSTRUCTOR_NAME, WRAPCONSTRUCTOR_DESC),
+                        ownerType.getClassName(), methType);
+                return;
             }
 
             if (opcode != Opcodes.INVOKESTATIC) {
@@ -96,7 +130,7 @@ public class SandboxAdapter extends ClassVisitor {
 
             mv.visitInvokeDynamicInsn(name, desc,
                     new Handle(Opcodes.H_INVOKESTATIC, Type.getInternalName(Bootstraps.class), WRAPINVOKE_NAME, WRAPINVOKE_DESC),
-                    opcode, ownerType.getClassName(), methType);
+                    invtype.id(), ownerType.getClassName(), methType);
         }
 
         @Override
@@ -109,9 +143,22 @@ public class SandboxAdapter extends ClassVisitor {
         public void visitLdcInsn(Object cst) {
             if (cst instanceof Handle) {
                 Handle handle = (Handle) cst;
-                mv.visitInvokeDynamicInsn(handle.getName(), Type.getMethodDescriptor(Type.getType(MethodHandle.class)), new Handle(Opcodes.H_INVOKESTATIC, Type.getInternalName(Bootstraps.class),
-                        WRAPHANDLE_NAME, WRAPHANDLE_DESC), hopcodeToInsn(handle.getTag()), Type.getObjectType(handle.getOwner()).getClassName(), Type.getMethodType(handle.getDesc()));
-                return;
+                InvocationType invtype = InvocationType.fromHandleOpcode(((Handle) cst).getTag());
+                Type ownerType = Type.getObjectType(handle.getOwner());
+                Type methType = Type.getMethodType(handle.getDesc());
+
+                boolean should;
+                try {
+                    should = policy.shouldIntercept(invtype, ownerType, handle.getName(), methType);
+                } catch (RewriteAbortException e) {
+                    throw new WrappedCheckedException(e);
+                }
+                if (should) {
+
+                    mv.visitInvokeDynamicInsn(handle.getName(), Type.getMethodDescriptor(Type.getType(MethodHandle.class)), new Handle(Opcodes.H_INVOKESTATIC, Type.getInternalName(Bootstraps.class),
+                            WRAPHANDLE_NAME, WRAPHANDLE_DESC), invtype.insnOpcode, ownerType.getClassName(), methType);
+                    return;
+                }
             }
             mv.visitLdcInsn(cst);
         }
@@ -122,22 +169,6 @@ public class SandboxAdapter extends ClassVisitor {
                 return; // We remove it because we convert <init> to invokedynamic
             }
             mv.visitTypeInsn(opcode, type);
-        }
-    }
-
-    public static int hopcodeToInsn(int hopcode) {
-        switch (hopcode) {
-            case Opcodes.H_INVOKEINTERFACE:
-                return Opcodes.INVOKEINTERFACE;
-            case Opcodes.H_INVOKESPECIAL:
-            case Opcodes.H_NEWINVOKESPECIAL:
-                return Opcodes.INVOKESPECIAL;
-            case Opcodes.H_INVOKESTATIC:
-                return Opcodes.INVOKESTATIC;
-            case Opcodes.H_INVOKEVIRTUAL:
-                return Opcodes.INVOKEVIRTUAL;
-            default:
-                throw new IllegalArgumentException("Can't convert handle opcode: " + hopcode);
         }
     }
 }

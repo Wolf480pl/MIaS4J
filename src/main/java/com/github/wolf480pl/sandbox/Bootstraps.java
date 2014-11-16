@@ -31,44 +31,43 @@ public class Bootstraps {
     }
 
     public static CallSite wrapInvoke(MethodHandles.Lookup caller, String invokedName, MethodType invokedType, int opcode, String owner, MethodType originalType) throws NoSuchMethodException,
-    IllegalAccessException, ClassNotFoundException {
-        MethodHandle handle = makeHandle(caller, invokedName, invokedType, opcode, owner, originalType);
+            IllegalAccessException, ClassNotFoundException {
+        InvocationType invType = InvocationType.fromID(opcode);
+        // TODO access checks maybe?
+        MethodHandle handle = makeHandle(caller, invokedName, invokedType, invType, owner, originalType);
         return new ConstantCallSite(handle);
     }
 
-    public static MethodHandle makeHandle(MethodHandles.Lookup caller, String invokedName, MethodType invokedType, int opcode, String owner, MethodType originalType) throws NoSuchMethodException,
-    IllegalAccessException, ClassNotFoundException {
-        System.err.println(caller + " wants " + owner + "." + invokedName + " " + invokedType);
+    public static MethodHandle makeHandle(MethodHandles.Lookup caller, String invokedName, MethodType invokedType, InvocationType invType, String owner, MethodType originalType) throws NoSuchMethodException,
+            IllegalAccessException, ClassNotFoundException {
+        System.err.println(caller + " wants " + owner + "." + invokedName + " " + invokedType); // TODO: Remove once we implement policies
         Class<?> ownerCls = caller.lookupClass().getClassLoader().loadClass(owner);
         final MethodHandle handle;
 
-        // TODO access checks maybe?
 
-
-        switch (opcode) {
-            case Opcodes.INVOKEINTERFACE:
-            case Opcodes.INVOKEVIRTUAL:
+        switch (invType) {
+            case INVOKEINTERFACE:
+            case INVOKEVIRTUAL:
                 handle = caller.findVirtual(ownerCls, invokedName, originalType);
                 break;
-            case Opcodes.INVOKESTATIC:
+            case INVOKESTATIC:
                 handle = caller.findStatic(ownerCls, invokedName, originalType);
                 break;
-            case Opcodes.INVOKESPECIAL:
-                if (invokedName == "<init>") {
-                    handle = caller.findConstructor(ownerCls, originalType);
-                } else {
-                    handle = caller.findSpecial(ownerCls, invokedName, originalType, caller.lookupClass());
-                }
+            case INVOKESPECIAL:
+                handle = caller.findSpecial(ownerCls, invokedName, originalType, caller.lookupClass());
+                break;
+            case INVOKENEWSPECIAL:
+                handle = caller.findConstructor(ownerCls, originalType);
                 break;
             default:
-                throw new IllegalArgumentException("Unknown invoke opcode: " + opcode);
+                throw new IllegalArgumentException("Unknown invoke type: " + invType);
         }
         return handle;
     }
 
     public static CallSite wrapConstructor(MethodHandles.Lookup caller, String invokedName, MethodType invokedType, String owner, MethodType originalType) throws NoSuchMethodException,
-    IllegalAccessException, ClassNotFoundException {
-        return wrapInvoke(caller, "<init>", invokedType, Opcodes.INVOKESPECIAL, owner, originalType);
+            IllegalAccessException, ClassNotFoundException {
+        return wrapInvoke(caller, "<init>", invokedType, InvocationType.INVOKENEWSPECIAL.id(), owner, originalType);
     }
 
     public static CallSite wrapInvokeDynamic(MethodHandles.Lookup caller, String invokedName, MethodType invokedType, Object... args) {
@@ -78,7 +77,9 @@ public class Bootstraps {
 
     public static CallSite wrapHandle(MethodHandles.Lookup caller, String invokedName, MethodType invokedType, int opcode, String owner, MethodType originalType) throws NoSuchMethodException,
             IllegalAccessException, ClassNotFoundException {
-        MethodHandle handle = makeHandle(caller, invokedName, invokedType, opcode, owner, originalType);
+        InvocationType invType = InvocationType.fromID(opcode);
+        // TODO access checks maybe?
+        MethodHandle handle = makeHandle(caller, invokedName, invokedType, invType, owner, originalType);
         return new ConstantCallSite(MethodHandles.constant(MethodHandle.class, handle));
     }
 

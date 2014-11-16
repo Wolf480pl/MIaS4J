@@ -20,6 +20,7 @@ package com.github.wolf480pl.sandbox;
 import static org.objectweb.asm.Type.getType;
 
 import java.lang.invoke.CallSite;
+import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
 
@@ -49,6 +50,10 @@ public class SandboxAdapter extends ClassVisitor {
         public static final String WRAPCONSTRUCTOR_NAME = "wrapConstructor";
         public static final String WRAPCONSTRUCTOR_DESC = Type.getMethodDescriptor(getType(CallSite.class), getType(MethodHandles.Lookup.class), getType(String.class), getType(MethodType.class),
                 getType(String.class), getType(MethodType.class));
+
+        public static final String WRAPHANDLE_NAME = "wrapHandle";
+        public static final String WRAPHANDLE_DESC = Type.getMethodDescriptor(getType(CallSite.class), getType(MethodHandles.Lookup.class), getType(String.class), getType(MethodType.class),
+                Type.INT_TYPE, getType(String.class), getType(MethodType.class));
 
         private boolean skip;
 
@@ -102,8 +107,13 @@ public class SandboxAdapter extends ClassVisitor {
 
         @Override
         public void visitLdcInsn(Object cst) {
-            // TODO
-            super.visitLdcInsn(cst);
+            if (cst instanceof Handle) {
+                Handle handle = (Handle) cst;
+                mv.visitInvokeDynamicInsn(handle.getName(), Type.getMethodDescriptor(Type.getType(MethodHandle.class)), new Handle(Opcodes.H_INVOKESTATIC, Type.getInternalName(Bootstraps.class),
+                        WRAPHANDLE_NAME, WRAPHANDLE_DESC), hopcodeToInsn(handle.getTag()), Type.getObjectType(handle.getOwner()).getClassName(), Type.getMethodType(handle.getDesc()));
+                return;
+            }
+            mv.visitLdcInsn(cst);
         }
 
         @Override
@@ -115,4 +125,19 @@ public class SandboxAdapter extends ClassVisitor {
         }
     }
 
+    public static int hopcodeToInsn(int hopcode) {
+        switch (hopcode) {
+            case Opcodes.H_INVOKEINTERFACE:
+                return Opcodes.INVOKEINTERFACE;
+            case Opcodes.H_INVOKESPECIAL:
+            case Opcodes.H_NEWINVOKESPECIAL:
+                return Opcodes.INVOKESPECIAL;
+            case Opcodes.H_INVOKESTATIC:
+                return Opcodes.INVOKESTATIC;
+            case Opcodes.H_INVOKEVIRTUAL:
+                return Opcodes.INVOKEVIRTUAL;
+            default:
+                throw new IllegalArgumentException("Can't convert handle opcode: " + hopcode);
+        }
+    }
 }

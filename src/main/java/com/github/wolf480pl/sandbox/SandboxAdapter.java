@@ -30,6 +30,7 @@ import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 
+import com.github.wolf480pl.sandbox.util.SequenceMethodVisitor;
 import com.github.wolf480pl.sandbox.util.WrappedCheckedException;
 
 public class SandboxAdapter extends ClassVisitor {
@@ -54,7 +55,7 @@ public class SandboxAdapter extends ClassVisitor {
         return new MethodAdapter(cv.visitMethod(access, name, desc, signature, exceptions), policy, name.equals("<init>"));
     }
 
-    public static class MethodAdapter extends MethodVisitor {
+    public static class MethodAdapter extends SequenceMethodVisitor {
         public static final String WRAPINVOKE_NAME = "wrapInvoke";
         public static final String WRAPINVOKE_DESC = Type.getMethodDescriptor(getType(CallSite.class), getType(MethodHandles.Lookup.class), getType(String.class), getType(MethodType.class),
                 Type.INT_TYPE, getType(String.class), getType(MethodType.class));
@@ -68,27 +69,42 @@ public class SandboxAdapter extends ClassVisitor {
                 Type.INT_TYPE, getType(String.class), getType(MethodType.class));
 
         private final RewritePolicy policy;
-        private boolean skip;
+        private final boolean constructor;
+        private int newsSeen = 0;
+        private boolean newJustSeen = false;
 
         public MethodAdapter(MethodVisitor mv, RewritePolicy policy, boolean constructor) {
-            super(Opcodes.ASM5, mv);
-            this.skip = constructor;
+            super(mv);
+            this.constructor = constructor;
             this.policy = policy;
         }
 
         @Override
         public void visitMethodInsn(int opcode, String owner, String name, String desc, boolean itf) {
+            newJustSeen = false;
+            /*
             if (skip) {
                 skip = false;
                 mv.visitMethodInsn(opcode, owner, name, desc, itf);
                 return;
             }
+             */
 
             InvocationType invtype;
             if (opcode == Opcodes.INVOKESPECIAL && name.equals("<init>")) {
                 invtype = InvocationType.INVOKENEWSPECIAL;
             } else {
                 invtype = InvocationType.fromInstruction(opcode);
+            }
+
+            if (constructor && invtype == InvocationType.INVOKENEWSPECIAL) {
+                if (newsSeen == 0) {
+                    // TODO: What about maliciously crafted bytecode?
+                    // TODO: Deal with this more intelligently by using sth like AnalyzerAdapter to track the stack
+                    mv.visitMethodInsn(opcode, owner, name, desc, itf);
+                    return;
+                }
+                --newsSeen;
             }
 
             Type ownerType = Type.getObjectType(owner);
@@ -99,7 +115,9 @@ public class SandboxAdapter extends ClassVisitor {
                     if (invtype == InvocationType.INVOKENEWSPECIAL) {
                         // We ate NEW, so now we have to give it back, since we're not rewriting the call
                         mv.visitTypeInsn(Opcodes.NEW, ownerType.getInternalName());
+                        // FIXME: This will not work if there are initializer arguments...
                     }
+                    // TODO: Deal with this more intelligently by using sth like AnalyzerAdapter to track the stack
                     mv.visitMethodInsn(opcode, owner, name, desc, itf);
                     return;
                 }
@@ -135,12 +153,14 @@ public class SandboxAdapter extends ClassVisitor {
 
         @Override
         public void visitInvokeDynamicInsn(String name, String desc, Handle bsm, Object... bsmArgs) {
+            newJustSeen = false;
             // TODO
             super.visitInvokeDynamicInsn(name, desc, bsm, bsmArgs);
         }
 
         @Override
         public void visitLdcInsn(Object cst) {
+            newJustSeen = false;
             if (cst instanceof Handle) {
                 Handle handle = (Handle) cst;
                 InvocationType invtype = InvocationType.fromHandleOpcode(((Handle) cst).getTag());
@@ -166,9 +186,28 @@ public class SandboxAdapter extends ClassVisitor {
         @Override
         public void visitTypeInsn(int opcode, String type) {
             if (opcode == Opcodes.NEW) {
+                if (constructor) {
+                    ++newsSeen;
+                }
+                newJustSeen = true;
                 return; // We remove it because we convert <init> to invokedynamic
             }
             mv.visitTypeInsn(opcode, type);
+        }
+
+        @Override
+        public void visitInsn(int opcode) {
+            if (newJustSeen && opcode == Opcodes.DUP) {
+                // We remove it because we convert <init> to invokedynamic
+            } else {
+                mv.visitInsn(opcode);
+            }
+            newJustSeen = false;
+        }
+
+        @Override
+        public void visitOtherInsn() {
+            newJustSeen = false;
         }
     }
 }

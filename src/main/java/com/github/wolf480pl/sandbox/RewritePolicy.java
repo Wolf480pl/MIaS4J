@@ -21,5 +21,5 @@ import org.objectweb.asm.Type;
 
 public interface RewritePolicy {
 
-    boolean shouldIntercept(InvocationType type, Type owner, String name, Type desc) throws RewriteAbortException;
+    boolean shouldIntercept(Type caller, InvocationType type, Type owner, String name, Type desc) throws RewriteAbortException;
 }

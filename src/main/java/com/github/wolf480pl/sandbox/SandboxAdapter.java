@@ -35,11 +35,12 @@ import com.github.wolf480pl.sandbox.util.WrappedCheckedException;
 
 public class SandboxAdapter extends ClassVisitor {
     private final RewritePolicy policy;
+    private Type clazz;
 
     public SandboxAdapter(ClassVisitor cv) {
         this(cv, new RewritePolicy() {
             @Override
-            public boolean shouldIntercept(InvocationType type, Type owner, String name, Type desc) throws RewriteAbortException {
+            public boolean shouldIntercept(Type caller, InvocationType type, Type owner, String name, Type desc) throws RewriteAbortException {
                 return true;
             }
         });
@@ -51,8 +52,14 @@ public class SandboxAdapter extends ClassVisitor {
     }
 
     @Override
+    public void visit(int version, int access, String name, String signature, String superName, String[] interfaces) {
+        this.clazz = Type.getObjectType(name);
+        super.visit(version, access, name, signature, superName, interfaces);
+    }
+
+    @Override
     public MethodVisitor visitMethod(int access, String name, String desc, String signature, String[] exceptions) {
-        return new MethodAdapter(cv.visitMethod(access, name, desc, signature, exceptions), policy, name.equals("<init>"));
+        return new MethodAdapter(cv.visitMethod(access, name, desc, signature, exceptions), policy, clazz, name.equals("<init>"));
     }
 
     public static class MethodAdapter extends SequenceMethodVisitor {
@@ -69,13 +76,15 @@ public class SandboxAdapter extends ClassVisitor {
                 Type.INT_TYPE, getType(String.class), getType(MethodType.class));
 
         private final RewritePolicy policy;
+        private final Type clazz;
         private final boolean constructor;
         private int newsSeen = 0;
         private boolean newJustSeen = false;
 
-        public MethodAdapter(MethodVisitor mv, RewritePolicy policy, boolean constructor) {
+        public MethodAdapter(MethodVisitor mv, RewritePolicy policy, Type clazz, boolean constructor) {
             super(mv);
             this.constructor = constructor;
+            this.clazz = clazz;
             this.policy = policy;
         }
 
@@ -111,7 +120,7 @@ public class SandboxAdapter extends ClassVisitor {
             Type methType = Type.getMethodType(desc);
 
             try {
-                if (!policy.shouldIntercept(invtype, ownerType, name, methType)) {
+                if (!policy.shouldIntercept(clazz, invtype, ownerType, name, methType)) {
                     if (invtype == InvocationType.INVOKENEWSPECIAL) {
                         // We ate NEW, so now we have to give it back, since we're not rewriting the call
                         mv.visitTypeInsn(Opcodes.NEW, ownerType.getInternalName());
@@ -169,7 +178,7 @@ public class SandboxAdapter extends ClassVisitor {
 
                 boolean should;
                 try {
-                    should = policy.shouldIntercept(invtype, ownerType, handle.getName(), methType);
+                    should = policy.shouldIntercept(clazz, invtype, ownerType, handle.getName(), methType);
                 } catch (RewriteAbortException e) {
                     throw new WrappedCheckedException(e);
                 }

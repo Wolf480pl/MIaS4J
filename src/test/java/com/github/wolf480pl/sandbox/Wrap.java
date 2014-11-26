@@ -30,9 +30,15 @@ import java.util.List;
 public class Wrap {
 
     public static void main(String[] args) throws NoSuchMethodException, IllegalAccessException, InvocationTargetException, ClassNotFoundException, MalformedURLException, URISyntaxException {
-        String cp = args[0];
-        String main = args[1];
-        String[] newArgs = Arrays.copyOfRange(args, 2, args.length);
+        boolean bypass = false;
+        int i = 0;
+        if (args[0].equalsIgnoreCase("true")) {
+            bypass = true;
+            ++i;
+        }
+        String cp = args[i];
+        String main = args[i + 1];
+        String[] newArgs = Arrays.copyOfRange(args, i + 2, args.length);
 
         List<URL> urls = new LinkedList<>();
         for (String s : cp.split(":")) {
@@ -40,7 +46,7 @@ public class Wrap {
         }
 
         Transformer t = null;
-        t = new Transformer();
+        t = bypass ? new Transformer(RewritePolicy.NEVER_INTERCEPT) : new Transformer();
         ClassLoader ldr = new SandboxClassLoader(urls.toArray(new URL[0]), t);
         Class<?> mainClass = ldr.loadClass(main);
 

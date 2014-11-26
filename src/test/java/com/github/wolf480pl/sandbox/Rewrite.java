@@ -24,8 +24,12 @@ import java.io.IOException;
 public class Rewrite {
 
     public static void main(String[] args) throws IOException {
+        boolean bypass = false;
+        if (args.length > 2) {
+            bypass = args[2].equalsIgnoreCase("true");
+        }
         FileInputStream fis = new FileInputStream(args[0]);
-        Transformer t = new Transformer();
+        Transformer t = bypass ? new Transformer(RewritePolicy.NEVER_INTERCEPT) : new Transformer();
         FileOutputStream fos = new FileOutputStream(args[1]);
         fos.write(t.transform("", fis));
         fis.close();

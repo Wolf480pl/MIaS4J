@@ -22,4 +22,20 @@ import org.objectweb.asm.Type;
 public interface RewritePolicy {
 
     boolean shouldIntercept(Type caller, InvocationType type, Type owner, String name, Type desc) throws RewriteAbortException;
+
+    public static class BlindPolicy implements RewritePolicy {
+        private final boolean should;
+
+        public BlindPolicy(boolean should) {
+            this.should = should;
+        }
+
+        @Override
+        public boolean shouldIntercept(Type caller, InvocationType type, Type owner, String name, Type desc) throws RewriteAbortException {
+            return should;
+        }
+    }
+
+    public static final RewritePolicy ALWAYS_INTERCEPT = new BlindPolicy(true);
+    public static final RewritePolicy NEVER_INTERCEPT = new BlindPolicy(false);
 }

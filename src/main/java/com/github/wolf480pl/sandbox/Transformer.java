@@ -25,6 +25,15 @@ import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.ClassWriter;
 
 public class Transformer {
+    private final RewritePolicy policy;
+
+    public Transformer() {
+        this(RewritePolicy.ALWAYS_INTERCEPT);
+    }
+
+    public Transformer(RewritePolicy policy) {
+        this.policy = policy;
+    }
 
     public byte[] transfrom(String name, byte[] data) {
         return transform(name, new ClassReader(data)).toByteArray();
@@ -36,7 +45,7 @@ public class Transformer {
 
     protected ClassWriter transform(String name, ClassReader reader) {
         ClassWriter writer = new ClassWriter(reader, ClassWriter.COMPUTE_FRAMES | ClassWriter.COMPUTE_MAXS);
-        ClassVisitor visitor = new SandboxAdapter(writer);
+        ClassVisitor visitor = new SandboxAdapter(writer, policy);
         ClassVisitor checker = new org.objectweb.asm.util.CheckClassAdapter(visitor);
         reader.accept(checker, ClassReader.SKIP_DEBUG | ClassReader.SKIP_FRAMES);
         return writer;

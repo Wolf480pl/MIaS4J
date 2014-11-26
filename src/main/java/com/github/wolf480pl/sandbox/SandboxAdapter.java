@@ -38,12 +38,7 @@ public class SandboxAdapter extends ClassVisitor {
     private Type clazz;
 
     public SandboxAdapter(ClassVisitor cv) {
-        this(cv, new RewritePolicy() {
-            @Override
-            public boolean shouldIntercept(Type caller, InvocationType type, Type owner, String name, Type desc) throws RewriteAbortException {
-                return true;
-            }
-        });
+        this(cv, RewritePolicy.ALWAYS_INTERCEPT);
     }
 
     public SandboxAdapter(ClassVisitor cv, RewritePolicy policy) {

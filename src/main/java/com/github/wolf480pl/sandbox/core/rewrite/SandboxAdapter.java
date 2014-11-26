@@ -23,6 +23,8 @@ import java.lang.invoke.CallSite;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
+import java.util.HashMap;
+import java.util.Map;
 
 import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.Handle;
@@ -36,6 +38,8 @@ import com.github.wolf480pl.sandbox.util.SequenceMethodVisitor;
 import com.github.wolf480pl.sandbox.util.WrappedCheckedException;
 
 public class SandboxAdapter extends ClassVisitor {
+    public static final String INIT = "<init>";
+
     private final RewritePolicy policy;
     private Type clazz;
 
@@ -56,7 +60,7 @@ public class SandboxAdapter extends ClassVisitor {
 
     @Override
     public MethodVisitor visitMethod(int access, String name, String desc, String signature, String[] exceptions) {
-        return new MethodAdapter(cv.visitMethod(access, name, desc, signature, exceptions), policy, clazz, name.equals("<init>"));
+        return new MethodAdapter(cv.visitMethod(access, name, desc, signature, exceptions), policy, clazz, name.equals(INIT));
     }
 
     public static class MethodAdapter extends SequenceMethodVisitor {
@@ -77,6 +81,7 @@ public class SandboxAdapter extends ClassVisitor {
         private final boolean constructor;
         private int newsSeen = 0;
         private boolean newJustSeen = false;
+        private final Map<String, Boolean> constructors = new HashMap<>();
 
         public MethodAdapter(MethodVisitor mv, RewritePolicy policy, Type clazz, boolean constructor) {
             super(mv);
@@ -97,7 +102,7 @@ public class SandboxAdapter extends ClassVisitor {
              */
 
             InvocationType invtype;
-            if (opcode == Opcodes.INVOKESPECIAL && name.equals("<init>")) {
+            if (opcode == Opcodes.INVOKESPECIAL && name.equals(INIT)) {
                 invtype = InvocationType.INVOKENEWSPECIAL;
             } else {
                 invtype = InvocationType.fromInstruction(opcode);
@@ -116,19 +121,31 @@ public class SandboxAdapter extends ClassVisitor {
             Type ownerType = Type.getObjectType(owner);
             Type methType = Type.getMethodType(desc);
 
-            try {
-                if (!policy.shouldIntercept(clazz, invtype, ownerType, name, methType)) {
-                    if (invtype == InvocationType.INVOKENEWSPECIAL) {
-                        // We ate NEW, so now we have to give it back, since we're not rewriting the call
-                        mv.visitTypeInsn(Opcodes.NEW, ownerType.getInternalName());
-                        // FIXME: This will not work if there are initializer arguments...
-                    }
-                    // TODO: Deal with this more intelligently by using sth like AnalyzerAdapter to track the stack
-                    mv.visitMethodInsn(opcode, owner, name, desc, itf);
-                    return;
+            boolean should = true;
+            boolean decidedOnNew = false;
+
+            if (invtype == InvocationType.INVOKENEWSPECIAL) {
+                decidedOnNew = constructors.containsKey(owner);
+                if (decidedOnNew) {
+                    should = constructors.get(owner);
                 }
-            } catch (RewriteAbortException e) {
-                throw new WrappedCheckedException(e);
+            }
+            if (!decidedOnNew) {
+                try {
+                    should = policy.shouldIntercept(clazz, invtype, ownerType, name, methType);
+                } catch (RewriteAbortException e) {
+                    throw new WrappedCheckedException(e);
+                }
+            }
+            if (!should) {
+                if (invtype == InvocationType.INVOKENEWSPECIAL && !decidedOnNew) {
+                    // We ate NEW, so now we have to give it back, since we're not rewriting the call
+                    mv.visitTypeInsn(Opcodes.NEW, ownerType.getInternalName());
+                    // FIXME: This will not work if there are initializer arguments...
+                }
+                // TODO: Deal with this more intelligently by using sth like AnalyzerAdapter to track the stack
+                mv.visitMethodInsn(opcode, owner, name, desc, itf);
+                return;
             }
 
             if (invtype == InvocationType.INVOKENEWSPECIAL) {
@@ -195,8 +212,18 @@ public class SandboxAdapter extends ClassVisitor {
                 if (constructor) {
                     ++newsSeen;
                 }
-                newJustSeen = true;
-                return; // We remove it because we convert <init> to invokedynamic
+                boolean should;
+                try {
+                    // We don't yet know the method signature of the initializer, so we pass null as desc.
+                    should = policy.shouldIntercept(clazz, InvocationType.INVOKENEWSPECIAL, Type.getObjectType(type), INIT, null);
+                    constructors.put(type, should);
+                } catch (RewriteAbortException e) {
+                    throw new WrappedCheckedException(e);
+                }
+                if (should) {
+                    newJustSeen = true;
+                    return; // We remove it because we convert <init> to invokedynamic
+                }
             }
             mv.visitTypeInsn(opcode, type);
         }

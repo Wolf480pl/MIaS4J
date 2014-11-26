@@ -23,6 +23,17 @@ import com.github.wolf480pl.sandbox.core.InvocationType;
 
 public interface RewritePolicy {
 
+    /**
+     * If invokation type is INVOKENEWSPECIAL, desc is null, (and name is {@code <init>}, then the exact signature of the initializer hasn't been determined yet. Returning true may result in another query for the same constructor but this time with a full method signature.
+     *
+     * @param caller
+     * @param type
+     * @param owner
+     * @param name
+     * @param desc
+     * @return
+     * @throws RewriteAbortException
+     */
     boolean shouldIntercept(Type caller, InvocationType type, Type owner, String name, Type desc) throws RewriteAbortException;
 
     public static class BlindPolicy implements RewritePolicy {

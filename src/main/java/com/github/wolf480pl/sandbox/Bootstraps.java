@@ -23,9 +23,23 @@ import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
 
-import org.objectweb.asm.Opcodes;
-
 public class Bootstraps {
+    private static RuntimePolicy policy = null;
+
+    public synchronized static void setPolicy(RuntimePolicy policy) {
+        if (policy == null) {
+            throw new IllegalArgumentException("policy must not be null");
+        }
+        if (Bootstraps.policy == null) {
+            Bootstraps.policy = policy;
+        } else {
+            throw new IllegalStateException("tried to set policy twice");
+        }
+    }
+    
+    public static RuntimePolicy getPolicy() {
+        return policy;
+    }
 
     private Bootstraps() {
     }

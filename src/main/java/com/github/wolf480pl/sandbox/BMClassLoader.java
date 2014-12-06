@@ -31,6 +31,13 @@ public class BMClassLoader extends SecureClassLoader {
     }
 
     public void setRuntimePolicy(RuntimePolicy policy) {
+        if (policySetter == null) {
+            try {
+                loadClass(BNAME, true);
+            } catch (ClassNotFoundException e) {
+                throw new IllegalStateException("Couldn't load Bootstraps class through ourselves", e);
+            }
+        }
         try {
             policySetter.invoke(policy);
         } catch (Throwable e) {

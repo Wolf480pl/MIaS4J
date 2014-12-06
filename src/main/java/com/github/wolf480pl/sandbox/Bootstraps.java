@@ -26,7 +26,11 @@ import java.lang.invoke.MethodType;
 public class Bootstraps {
     private static RuntimePolicy policy = null;
 
-    public synchronized static void setPolicy(RuntimePolicy policy) {
+    public static final String SETPOLICY_NAME = "setPolicy";
+    /**
+     * Not thread safe! The caller must make sure that this is not called from more than one thread at the same time.
+     */
+    public static void setPolicy(RuntimePolicy policy) {
         if (policy == null) {
             throw new IllegalArgumentException("policy must not be null");
         }
@@ -44,6 +48,8 @@ public class Bootstraps {
     private Bootstraps() {
     }
 
+    public static final String WRAPINVOKE_NAME = "wrapInvoke";
+    
     public static CallSite wrapInvoke(MethodHandles.Lookup caller, String invokedName, MethodType invokedType, int opcode, String owner, MethodType originalType) throws NoSuchMethodException,
             IllegalAccessException, ClassNotFoundException {
         InvocationType invType = InvocationType.fromID(opcode);
@@ -79,6 +85,8 @@ public class Bootstraps {
         return handle;
     }
 
+    public static final String WRAPCONSTRUCTOR_NAME = "wrapConstructor";
+    
     public static CallSite wrapConstructor(MethodHandles.Lookup caller, String invokedName, MethodType invokedType, String owner, MethodType originalType) throws NoSuchMethodException,
             IllegalAccessException, ClassNotFoundException {
         return wrapInvoke(caller, "<init>", invokedType, InvocationType.INVOKENEWSPECIAL.id(), owner, originalType);
@@ -89,6 +97,8 @@ public class Bootstraps {
         return null;
     }
 
+    public static final String WRAPHANDLE_NAME = "wrapHandle";
+    
     public static CallSite wrapHandle(MethodHandles.Lookup caller, String invokedName, MethodType invokedType, int opcode, String owner, MethodType originalType) throws NoSuchMethodException,
             IllegalAccessException, ClassNotFoundException {
         InvocationType invType = InvocationType.fromID(opcode);

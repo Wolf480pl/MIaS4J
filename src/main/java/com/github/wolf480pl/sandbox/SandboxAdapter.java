@@ -58,15 +58,15 @@ public class SandboxAdapter extends ClassVisitor {
     }
 
     public static class MethodAdapter extends SequenceMethodVisitor {
-        public static final String WRAPINVOKE_NAME = "wrapInvoke";
+        public static final String WRAPINVOKE_NAME = Bootstraps.WRAPINVOKE_NAME;
         public static final String WRAPINVOKE_DESC = Type.getMethodDescriptor(getType(CallSite.class), getType(MethodHandles.Lookup.class), getType(String.class), getType(MethodType.class),
                 Type.INT_TYPE, getType(String.class), getType(MethodType.class));
 
-        public static final String WRAPCONSTRUCTOR_NAME = "wrapConstructor";
+        public static final String WRAPCONSTRUCTOR_NAME = Bootstraps.WRAPCONSTRUCTOR_NAME;
         public static final String WRAPCONSTRUCTOR_DESC = Type.getMethodDescriptor(getType(CallSite.class), getType(MethodHandles.Lookup.class), getType(String.class), getType(MethodType.class),
                 getType(String.class), getType(MethodType.class));
 
-        public static final String WRAPHANDLE_NAME = "wrapHandle";
+        public static final String WRAPHANDLE_NAME = Bootstraps.WRAPHANDLE_NAME;
         public static final String WRAPHANDLE_DESC = Type.getMethodDescriptor(getType(CallSite.class), getType(MethodHandles.Lookup.class), getType(String.class), getType(MethodType.class),
                 Type.INT_TYPE, getType(String.class), getType(MethodType.class));
 

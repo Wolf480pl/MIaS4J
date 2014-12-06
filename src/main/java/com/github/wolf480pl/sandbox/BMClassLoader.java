@@ -17,7 +17,7 @@ import org.objectweb.asm.Type;
 public class BMClassLoader extends SecureClassLoader {
     public static final String BNAME = Bootstraps.class.getCanonicalName();
     public static final String INAME = Type.getInternalName(Bootstraps.class);
-    public static final String METH_NAME = "setPolicy";
+    public static final String METH_NAME = Bootstraps.SETPOLICY_NAME;
     public static final MethodType METH_TYPE = MethodType.methodType(Void.TYPE, RuntimePolicy.class);
 
     private MethodHandle policySetter = null;

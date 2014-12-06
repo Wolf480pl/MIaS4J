@@ -60,6 +60,10 @@ public class Bootstraps {
 
     public static MethodHandle makeHandle(MethodHandles.Lookup caller, String invokedName, MethodType invokedType, InvocationType invType, String owner, MethodType originalType) throws NoSuchMethodException,
             IllegalAccessException, ClassNotFoundException {
+        
+        return policy.intercept(caller, new MethodHandlePrototype(invType, owner, invokedName, originalType));
+        
+        /*
         System.err.println(caller + " wants " + owner + "." + invokedName + " " + invokedType); // TODO: Remove once we implement policies
         Class<?> ownerCls = caller.lookupClass().getClassLoader().loadClass(owner);
         final MethodHandle handle;
@@ -83,6 +87,7 @@ public class Bootstraps {
                 throw new IllegalArgumentException("Unknown invoke type: " + invType);
         }
         return handle;
+        */
     }
 
     public static final String WRAPCONSTRUCTOR_NAME = "wrapConstructor";

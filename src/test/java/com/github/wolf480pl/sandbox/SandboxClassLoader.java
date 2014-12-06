@@ -35,6 +35,9 @@ import java.util.jar.Attributes;
 import java.util.jar.Attributes.Name;
 import java.util.jar.Manifest;
 
+import com.github.wolf480pl.sandbox.RuntimePolicy.LoggingPolicy;
+import com.github.wolf480pl.sandbox.RuntimePolicy.PassthruPolicy;
+
 import sun.misc.Resource;
 import sun.misc.URLClassPath;
 
@@ -43,11 +46,30 @@ import sun.misc.URLClassPath;
 public class SandboxClassLoader extends URLClassLoader {
     private URLClassPath ucp;
     private Transformer transformer;
+    private final BMClassLoader bmLoader;
 
     public SandboxClassLoader(URL[] urls, Transformer transformer) {
         super(urls, Wrap.class.getClassLoader());
         ucp = new URLClassPath(urls);
         this.transformer = transformer;
+        this.bmLoader = new BMClassLoader(getParent());
+        bmLoader.setRuntimePolicy(new LoggingPolicy(new PassthruPolicy()));
+    }
+
+    @Override
+    protected Class<?> loadClass(String name, boolean resolve) throws ClassNotFoundException {
+        if (name.equalsIgnoreCase(BMClassLoader.BNAME)) {
+            Class<?> c = findLoadedClass(name);
+            if (c == null) {
+                c = bmLoader.loadClass(name);
+            }
+            if (resolve) {
+                resolveClass(c);
+            }
+            return c;
+        } else {
+            return super.loadClass(name, resolve);
+        }
     }
 
     @Override

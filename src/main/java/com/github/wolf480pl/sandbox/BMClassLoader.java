@@ -5,6 +5,7 @@ import java.io.InputStream;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
+import java.net.URL;
 import java.security.CodeSource;
 import java.security.SecureClassLoader;
 
@@ -17,6 +18,7 @@ import org.objectweb.asm.Type;
 public class BMClassLoader extends SecureClassLoader {
     public static final String BNAME = Bootstraps.class.getCanonicalName();
     public static final String INAME = Type.getInternalName(Bootstraps.class);
+    public static final String RNAME = INAME + ".class";
     public static final String METH_NAME = Bootstraps.SETPOLICY_NAME;
     public static final MethodType METH_TYPE = MethodType.methodType(Void.TYPE, RuntimePolicy.class);
 
@@ -27,7 +29,7 @@ public class BMClassLoader extends SecureClassLoader {
     }
 
     public BMClassLoader(ClassLoader parent) {
-        super(parent);
+        super(new FilteringClassLoader(parent));
     }
 
     public void setRuntimePolicy(RuntimePolicy policy) {
@@ -54,9 +56,15 @@ public class BMClassLoader extends SecureClassLoader {
     @Override
     protected Class<?> findClass(String name) throws ClassNotFoundException {
         if (name.equals(BNAME)) {
-            InputStream is = getParent().getResourceAsStream(INAME);
-            if (is == null) {
-                throw new ClassNotFoundException(name);
+            URL res = getParent().getParent().getResource(RNAME); // double getParent because FilteringClassLoader
+            if (res == null) {
+                throw new ClassNotFoundException(name + ": no " + RNAME);
+            }
+            InputStream is;
+            try {
+                is = res.openStream();
+            } catch (IOException e) {
+                throw new ClassNotFoundException(name, e);
             }
             byte[] bytes;
             try {
@@ -67,7 +75,7 @@ public class BMClassLoader extends SecureClassLoader {
             // TODO: Are we sure about this CodeSource?
             CodeSource cs = Bootstraps.class.getProtectionDomain().getCodeSource();
             Package pkg = Bootstraps.class.getPackage();
-            if (pkg != null) {
+            if (pkg != null && getPackage(pkg.getName()) == null) {
                 copyPackage(pkg, cs);
             }
             Class<?> c = defineClass(name, bytes, 0, bytes.length, cs);
@@ -91,4 +99,18 @@ public class BMClassLoader extends SecureClassLoader {
                 pkg.getImplementationVendor(), pkg.isSealed() ? cs.getLocation() : null);
     }
 
+    protected static class FilteringClassLoader extends ClassLoader {
+        public FilteringClassLoader(ClassLoader parent) {
+            super(parent);
+        }
+
+        @Override
+        public Class<?> loadClass(String name, boolean resolve) throws ClassNotFoundException {
+            if (name.equals(BNAME)) {
+                throw new ClassNotFoundException("Loading of class " + name + " was filtered out.");
+            }
+            return super.loadClass(name, resolve);
+        }
+
+    }
 }

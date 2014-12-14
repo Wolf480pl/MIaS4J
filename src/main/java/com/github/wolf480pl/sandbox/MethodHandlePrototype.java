@@ -7,8 +7,14 @@ import java.lang.invoke.MethodType;
 public class MethodHandlePrototype implements Cloneable {
     private InvocationType invType;
     private String owner;
+    private Class<?> ownerClass;
     private String name;
     private MethodType methodType;
+
+    public MethodHandlePrototype(InvocationType invType, Class<?> owner, String name, MethodType methType) {
+        this(invType, owner.getCanonicalName(), name, methType);
+        this.ownerClass = owner;
+    }
 
     public MethodHandlePrototype(InvocationType invType, String owner, String name, MethodType methType) {
         this.invType = invType;
@@ -22,8 +28,10 @@ public class MethodHandlePrototype implements Cloneable {
     }
 
     public MethodHandle bake(Lookup lookup) throws NoSuchMethodException, IllegalAccessException, ClassNotFoundException {
-        Class<?> ownerCls = resolveOwner(owner, lookup);
-        return bake(lookup, ownerCls);
+        if (ownerClass == null) {
+            resolveOwner(lookup);
+        }
+        return bake(lookup, ownerClass);
     }
 
     public MethodHandle bake(Lookup lookup, Class<?> ownerCls) throws NoSuchMethodException, IllegalAccessException {
@@ -63,6 +71,20 @@ public class MethodHandlePrototype implements Cloneable {
 
     public void setOwner(String owner) {
         this.owner = owner;
+        this.ownerClass = null;
+    }
+
+    public void setOwner(Class<?> owner) {
+        this.ownerClass = owner;
+        this.owner = owner.getCanonicalName();
+    }
+
+    public void resolveOwner(Lookup lookup) throws ClassNotFoundException {
+        this.ownerClass = resolveOwner(owner, lookup);
+    }
+
+    public Class<?> getOwnerClass() {
+        return ownerClass;
     }
 
     public String getName() {
@@ -75,6 +97,24 @@ public class MethodHandlePrototype implements Cloneable {
 
     public MethodType getMethodType() {
         return methodType;
+    }
+
+    public MethodType getHandleMethodType() {
+        if (ownerClass == null) {
+            return null;
+        }
+        switch (invType) {
+            case INVOKEINTERFACE:
+            case INVOKEVIRTUAL:
+            case INVOKESPECIAL:
+                return methodType.insertParameterTypes(0, ownerClass);
+            case INVOKESTATIC:
+                return methodType;
+            case INVOKENEWSPECIAL:
+                return methodType.changeReturnType(ownerClass);
+            default:
+                throw new IllegalArgumentException("Unknown invoke type: " + invType);
+        }
     }
 
     public void setMethodType(MethodType methodType) {

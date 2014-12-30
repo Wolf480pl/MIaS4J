@@ -1,0 +1,13 @@
+Test1 wants Test1.<init> (int)void
+Test1 wants Test1.say (Object,int)int
+Test1 wants java.io.PrintStream.println (Object)void
+hey
+Test1 wants java.lang.Integer.valueOf (int)Integer
+Test1 wants java.util.LinkedList.<init> ()void
+Test1 wants java.util.List.add (Object)boolean
+Test1 wants java.util.Date.<init> ()void
+Test1 wants Test1.say (Object,int)int
+Mon Dec 29 12:46:43 CET 2014
+Test1 wants java.io.PrintStream.println (String)void
+byebye
+bye

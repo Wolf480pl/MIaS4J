@@ -1,4 +1,4 @@
-package com.github.wolf480pl.sandbox;
+package com.github.wolf480pl.sandbox.core.runtime;
 
 import java.io.IOException;
 import java.io.InputStream;

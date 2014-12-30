@@ -27,6 +27,8 @@ import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 
+import com.github.wolf480pl.sandbox.core.rewrite.RewritePolicy;
+
 public class Wrap {
 
     public static void main(String[] args) throws NoSuchMethodException, IllegalAccessException, InvocationTargetException, ClassNotFoundException, MalformedURLException, URISyntaxException {

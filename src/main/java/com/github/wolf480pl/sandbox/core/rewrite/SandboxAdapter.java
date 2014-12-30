@@ -15,7 +15,7 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package com.github.wolf480pl.sandbox;
+package com.github.wolf480pl.sandbox.core.rewrite;
 
 import static org.objectweb.asm.Type.getType;
 
@@ -30,6 +30,8 @@ import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 
+import com.github.wolf480pl.sandbox.core.InvocationType;
+import com.github.wolf480pl.sandbox.core.runtime.Bootstraps;
 import com.github.wolf480pl.sandbox.util.SequenceMethodVisitor;
 import com.github.wolf480pl.sandbox.util.WrappedCheckedException;
 

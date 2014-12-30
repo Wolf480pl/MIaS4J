@@ -35,8 +35,9 @@ import java.util.jar.Attributes;
 import java.util.jar.Attributes.Name;
 import java.util.jar.Manifest;
 
-import com.github.wolf480pl.sandbox.RuntimePolicy.LoggingPolicy;
-import com.github.wolf480pl.sandbox.RuntimePolicy.PassthruPolicy;
+import com.github.wolf480pl.sandbox.core.runtime.BMClassLoader;
+import com.github.wolf480pl.sandbox.core.runtime.RuntimePolicy.LoggingPolicy;
+import com.github.wolf480pl.sandbox.core.runtime.RuntimePolicy.PassthruPolicy;
 
 import sun.misc.Resource;
 import sun.misc.URLClassPath;

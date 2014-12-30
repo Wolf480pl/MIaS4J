@@ -21,6 +21,8 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 
+import com.github.wolf480pl.sandbox.core.rewrite.RewritePolicy;
+
 public class Rewrite {
 
     public static void main(String[] args) throws IOException {

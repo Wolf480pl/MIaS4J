@@ -1,8 +1,10 @@
-package com.github.wolf480pl.sandbox;
+package com.github.wolf480pl.sandbox.core.runtime;
 
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles.Lookup;
 import java.lang.invoke.MethodType;
+
+import com.github.wolf480pl.sandbox.core.InvocationType;
 
 public class MethodHandlePrototype implements Cloneable {
     private InvocationType invType;

@@ -11,6 +11,7 @@ import java.net.URLConnection;
 import java.security.CodeSigner;
 import java.security.CodeSource;
 import java.security.SecureClassLoader;
+import java.util.Enumeration;
 import java.util.jar.Attributes;
 import java.util.jar.Attributes.Name;
 import java.util.jar.Manifest;
@@ -147,6 +148,18 @@ public abstract class AbstractTransformingClassLoader extends SecureClassLoader 
         }
 
         return definePackage(name, specTitle, specVersion, specVendor, implTitle, implVersion, implVendor, sealed.equalsIgnoreCase("true") ? url : null);
+
+    }
+
+    @Override
+    protected URL findResource(String name) {
+        return backend.getResource(name);
+
+    }
+
+    @Override
+    protected Enumeration<URL> findResources(String name) throws IOException {
+        return backend.getResources(name);
 
     }
 

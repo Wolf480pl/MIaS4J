@@ -23,11 +23,13 @@ import java.lang.reflect.Method;
 import java.net.MalformedURLException;
 import java.net.URISyntaxException;
 import java.net.URL;
+import java.net.URLClassLoader;
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 
 import com.github.wolf480pl.sandbox.core.rewrite.RewritePolicy;
+import com.github.wolf480pl.sandbox.util.NullClassLoader;
 
 public class Wrap {
 
@@ -49,13 +51,18 @@ public class Wrap {
 
         Transformer t = null;
         t = bypass ? new Transformer(RewritePolicy.NEVER_INTERCEPT) : new Transformer();
-        ClassLoader ldr = new SandboxClassLoader(urls.toArray(new URL[0]), t);
+        ClassLoader ldr = makeSandboxClassLoader(urls.toArray(new URL[0]), t);
         Class<?> mainClass = ldr.loadClass(main);
 
         Method mainMethod = mainClass.getDeclaredMethod("main", String[].class);
         mainMethod.invoke(null, (Object) newArgs);
         // MethodHandles.lookup().findStatic(mainClass, "main", MethodType.methodType(Void.class, String[].class)).invoke(newArgs);
         System.out.println("bye");
+    }
+
+    public static ClassLoader makeSandboxClassLoader(URL[] urls, Transformer t) {
+        // return new SandboxClassLoader(urls, t);
+        return new SandboxClassLoader1(t, new URLClassLoader(urls, new NullClassLoader()), Wrap.class.getClassLoader());
     }
 
 }

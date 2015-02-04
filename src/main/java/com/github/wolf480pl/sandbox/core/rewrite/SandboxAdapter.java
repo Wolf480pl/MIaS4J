@@ -166,19 +166,31 @@ public class SandboxAdapter extends ClassVisitor {
                 }
                 int lowestStack = currentStack;
 
+                int deepestRef = -1;
+                for (int i = 0; i < lowestStack; ++i) {
+                    if (analyzer.stack.get(i) == uninitialized) {
+                        deepestRef = i;
+                        break;
+                    }
+                }
+                if (deepestRef >= 0) {
+                    findReplaceInStack(uninitialized, local, local + 1, deepestRef, currentStack);
+                }
+
                 // ...and replace them with the return value of our method handle
                 while (currentStack < arg0idx - 1) {
                     mv.visitVarInsn(Opcodes.ALOAD, local);
                     ++currentStack;
                 }
-                // TODO: also replace it if it's deeper on the stack
 
+                /*
                 for (int i = 0; i < lowestStack; ++i) {
                     if (analyzer.stack.get(i) == uninitialized) {
                         // Crap... a copy of our uninitialized reference is buried somewhere in the stack... we can't fix this yet, so... I guess we crash
                         throw new UnsupportedOperationException("Couldn't rewrite constructor: An uninitialized reference to " + owner + " was buried deep in the stack");
                     }
                 }
+                 */
 
                 // replace all occurrences of the uninitialized reference in locals with the return value of our metod handle
                 for (int i = 0; i < analyzer.locals.size(); ++i) {
@@ -275,5 +287,64 @@ public class SandboxAdapter extends ClassVisitor {
             newJustSeen = false;
         }
          */
+
+        protected void findReplaceInStack(Object find, int replaceLocal, int firstFreeLocal, int bottom, int top) {
+            int loc = firstFreeLocal;
+            for (int i = top; i >= bottom; --i) {
+                Object type = analyzer.stack.get(i);
+                if (type == find) {
+                    mv.visitInsn(Opcodes.POP);
+                } else if (type == Opcodes.TOP && i > 0) {
+                    if (analyzer.stack.get(i - 1) == Opcodes.DOUBLE) {
+                        mv.visitVarInsn(Opcodes.DSTORE, loc);
+                        loc += 2;
+                        --i;
+                    } else if (analyzer.stack.get(i - 1) == Opcodes.LONG) {
+                        mv.visitVarInsn(Opcodes.LSTORE, loc);
+                        loc += 2;
+                        --i;
+                    } else {
+                        // WTF is that?
+                        throw new IllegalStateException("There was TOP on the stack without lower half");
+                    }
+                } else {
+                    if (type == Opcodes.INTEGER) {
+                        mv.visitVarInsn(Opcodes.ISTORE, loc);
+                    } else if (type == Opcodes.FLOAT) {
+                        mv.visitVarInsn(Opcodes.FSTORE, loc);
+                    } else {
+                        mv.visitVarInsn(Opcodes.ASTORE, loc);
+                    }
+                    ++loc;
+                }
+            }
+            --loc;
+            for (int i = bottom; i <= top; ++i) {
+                Object type = analyzer.stack.get(i);
+                if (type == find) {
+                    mv.visitVarInsn(Opcodes.ALOAD, replaceLocal);
+                } else if (type == Opcodes.DOUBLE) {
+                    mv.visitVarInsn(Opcodes.DLOAD, loc);
+                    loc -= 2;
+                    ++i; // skip TOP
+                } else if (type == Opcodes.LONG) {
+                    mv.visitVarInsn(Opcodes.LSTORE, loc);
+                    loc -= 2;
+                    ++i; // skip TOP
+                } else if (type == Opcodes.TOP) {
+                    // WTF is that? If this was an upper part of DOUBLE or LONG, we would skip it by additional ++i
+                    throw new IllegalStateException("There was TOP on the stack without lower half");
+                } else {
+                    if (type == Opcodes.INTEGER) {
+                        mv.visitVarInsn(Opcodes.ILOAD, loc);
+                    } else if (type == Opcodes.FLOAT) {
+                        mv.visitVarInsn(Opcodes.FLOAD, loc);
+                    } else {
+                        mv.visitVarInsn(Opcodes.ALOAD, loc);
+                    }
+                    --loc;
+                }
+            }
+        }
     }
 }

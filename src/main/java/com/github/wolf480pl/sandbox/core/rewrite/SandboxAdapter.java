@@ -23,14 +23,16 @@ import java.lang.invoke.CallSite;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
-import java.util.HashMap;
-import java.util.Map;
 
 import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.Handle;
+import org.objectweb.asm.Label;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
+import org.objectweb.asm.commons.AnalyzerAdapter;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.github.wolf480pl.sandbox.core.InvocationType;
 import com.github.wolf480pl.sandbox.core.runtime.Bootstraps;
@@ -39,6 +41,7 @@ import com.github.wolf480pl.sandbox.util.WrappedCheckedException;
 
 public class SandboxAdapter extends ClassVisitor {
     public static final String INIT = "<init>";
+    protected static final Logger LOG = LoggerFactory.getLogger(SandboxAdapter.class);
 
     private final RewritePolicy policy;
     private Type clazz;
@@ -60,7 +63,10 @@ public class SandboxAdapter extends ClassVisitor {
 
     @Override
     public MethodVisitor visitMethod(int access, String name, String desc, String signature, String[] exceptions) {
-        return new MethodAdapter(cv.visitMethod(access, name, desc, signature, exceptions), policy, clazz, name.equals(INIT));
+        MethodAdapter ma = new MethodAdapter(cv.visitMethod(access, name, desc, signature, exceptions), policy, clazz, name.equals(INIT));
+        AnalyzerAdapter analyzer = new AnalyzerAdapter(clazz.getInternalName(), access, name, desc, ma);
+        ma.setAnalyzer(analyzer);
+        return analyzer;
     }
 
     public static class MethodAdapter extends SequenceMethodVisitor {
@@ -79,9 +85,7 @@ public class SandboxAdapter extends ClassVisitor {
         private final RewritePolicy policy;
         private final Type clazz;
         private final boolean constructor;
-        private int newsSeen = 0;
-        private boolean newJustSeen = false;
-        private final Map<String, Boolean> constructors = new HashMap<>();
+        private AnalyzerAdapter analyzer;
 
         public MethodAdapter(MethodVisitor mv, RewritePolicy policy, Type clazz, boolean constructor) {
             super(mv);
@@ -90,16 +94,12 @@ public class SandboxAdapter extends ClassVisitor {
             this.policy = policy;
         }
 
+        public void setAnalyzer(AnalyzerAdapter analyzer) {
+            this.analyzer = analyzer;
+        }
+
         @Override
         public void visitMethodInsn(int opcode, String owner, String name, String desc, boolean itf) {
-            newJustSeen = false;
-            /*
-            if (skip) {
-                skip = false;
-                mv.visitMethodInsn(opcode, owner, name, desc, itf);
-                return;
-            }
-             */
 
             InvocationType invtype;
             if (opcode == Opcodes.INVOKESPECIAL && name.equals(INIT)) {
@@ -108,28 +108,25 @@ public class SandboxAdapter extends ClassVisitor {
                 invtype = InvocationType.fromInstruction(opcode);
             }
 
+            Type ownerType = Type.getObjectType(owner);
+            Type methType = Type.getMethodType(desc);
+
+            int argAndReturnSizes = methType.getArgumentsAndReturnSizes();
+            int arg0idx = analyzer.stack.size() - (argAndReturnSizes >> 2);
+
+            LOG.debug("methType: " + methType);
+            LOG.debug("arg&ret size: " + argAndReturnSizes + " stack size: " + analyzer.stack.size() + " arg0idx: " + arg0idx);
             if (constructor && invtype == InvocationType.INVOKENEWSPECIAL) {
-                if (newsSeen == 0) {
-                    // TODO: What about maliciously crafted bytecode?
-                    // TODO: Deal with this more intelligently by using sth like AnalyzerAdapter to track the stack
+                if (analyzer.stack.get(arg0idx) == Opcodes.UNINITIALIZED_THIS) {
+                    //TODO: Intercept these somehow, too
                     mv.visitMethodInsn(opcode, owner, name, desc, itf);
                     return;
                 }
-                --newsSeen;
             }
-
-            Type ownerType = Type.getObjectType(owner);
-            Type methType = Type.getMethodType(desc);
 
             boolean should = true;
             boolean decidedOnNew = false;
 
-            if (invtype == InvocationType.INVOKENEWSPECIAL) {
-                decidedOnNew = constructors.containsKey(owner);
-                if (decidedOnNew) {
-                    should = constructors.get(owner);
-                }
-            }
             if (!decidedOnNew) {
                 try {
                     should = policy.shouldIntercept(clazz, invtype, ownerType, name, methType);
@@ -138,12 +135,6 @@ public class SandboxAdapter extends ClassVisitor {
                 }
             }
             if (!should) {
-                if (invtype == InvocationType.INVOKENEWSPECIAL && !decidedOnNew) {
-                    // We ate NEW, so now we have to give it back, since we're not rewriting the call
-                    mv.visitTypeInsn(Opcodes.NEW, ownerType.getInternalName());
-                    // FIXME: This will not work if there are initializer arguments...
-                }
-                // TODO: Deal with this more intelligently by using sth like AnalyzerAdapter to track the stack
                 mv.visitMethodInsn(opcode, owner, name, desc, itf);
                 return;
             }
@@ -157,6 +148,46 @@ public class SandboxAdapter extends ClassVisitor {
                         invtype.id(), ownerType.getClassName(), methType);*/
                 mv.visitInvokeDynamicInsn("init", desc, new Handle(Opcodes.H_INVOKESTATIC, Type.getInternalName(Bootstraps.class), WRAPCONSTRUCTOR_NAME, WRAPCONSTRUCTOR_DESC),
                         ownerType.getClassName(), methType);
+
+                // stack: ... uninitialized returned
+                int local = analyzer.locals.size();
+                mv.visitVarInsn(Opcodes.ASTORE, local);
+                // stack: ... uninitialized
+                mv.visitInsn(Opcodes.POP);
+                // stack: ...
+
+                Label uninitialized = (Label) analyzer.stack.get(arg0idx);
+                int currentStack = arg0idx - 1;
+
+                // remove all occurrences of the uninitialized reference from stack...
+                while (currentStack >= 0 && analyzer.stack.get(currentStack) == uninitialized) {
+                    mv.visitInsn(Opcodes.POP);
+                    --currentStack;
+                }
+                int lowestStack = currentStack;
+
+                // ...and replace them with the return value of our method handle
+                while (currentStack < arg0idx - 1) {
+                    mv.visitVarInsn(Opcodes.ALOAD, local);
+                    ++currentStack;
+                }
+                // TODO: also replace it if it's deeper on the stack
+
+                for (int i = 0; i < lowestStack; ++i) {
+                    if (analyzer.stack.get(i) == uninitialized) {
+                        // Crap... a copy of our uninitialized reference is buried somewhere in the stack... we can't fix this yet, so... I guess we crash
+                        throw new UnsupportedOperationException("Couldn't rewrite constructor: An uninitialized reference to " + owner + " was buried deep in the stack");
+                    }
+                }
+
+                // replace all occurrences of the uninitialized reference in locals with the return value of our metod handle
+                for (int i = 0; i < analyzer.locals.size(); ++i) {
+                    if (analyzer.locals.get(i) == uninitialized) {
+                        mv.visitVarInsn(Opcodes.ALOAD, local);
+                        mv.visitVarInsn(Opcodes.ASTORE, i);
+                    }
+                }
+
                 return;
             }
 
@@ -176,14 +207,12 @@ public class SandboxAdapter extends ClassVisitor {
 
         @Override
         public void visitInvokeDynamicInsn(String name, String desc, Handle bsm, Object... bsmArgs) {
-            newJustSeen = false;
             // TODO
             super.visitInvokeDynamicInsn(name, desc, bsm, bsmArgs);
         }
 
         @Override
         public void visitLdcInsn(Object cst) {
-            newJustSeen = false;
             if (cst instanceof Handle) {
                 Handle handle = (Handle) cst;
                 InvocationType invtype = InvocationType.fromHandleOpcode(((Handle) cst).getTag());
@@ -206,6 +235,7 @@ public class SandboxAdapter extends ClassVisitor {
             mv.visitLdcInsn(cst);
         }
 
+        /*
         @Override
         public void visitTypeInsn(int opcode, String type) {
             if (opcode == Opcodes.NEW) {
@@ -227,7 +257,9 @@ public class SandboxAdapter extends ClassVisitor {
             }
             mv.visitTypeInsn(opcode, type);
         }
+         */
 
+        /*
         @Override
         public void visitInsn(int opcode) {
             if (newJustSeen && opcode == Opcodes.DUP) {
@@ -242,5 +274,6 @@ public class SandboxAdapter extends ClassVisitor {
         public void visitOtherInsn() {
             newJustSeen = false;
         }
+         */
     }
 }

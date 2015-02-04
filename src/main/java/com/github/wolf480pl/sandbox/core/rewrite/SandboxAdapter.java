@@ -23,6 +23,10 @@ import java.lang.invoke.CallSite;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
 import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.Handle;
@@ -86,6 +90,8 @@ public class SandboxAdapter extends ClassVisitor {
         private final Type clazz;
         private final boolean constructor;
         private AnalyzerAdapter analyzer;
+        private Set<Label> removedNews = new HashSet<>();
+        private List<Label> labels = new ArrayList<>(3);
 
         public MethodAdapter(MethodVisitor mv, RewritePolicy policy, Type clazz, boolean constructor) {
             super(mv);
@@ -100,6 +106,7 @@ public class SandboxAdapter extends ClassVisitor {
 
         @Override
         public void visitMethodInsn(int opcode, String owner, String name, String desc, boolean itf) {
+            labels.clear();
 
             InvocationType invtype;
             if (opcode == Opcodes.INVOKESPECIAL && name.equals(INIT)) {
@@ -125,7 +132,7 @@ public class SandboxAdapter extends ClassVisitor {
             }
 
             boolean should = true;
-            boolean decidedOnNew = false;
+            boolean decidedOnNew = (invtype == InvocationType.INVOKENEWSPECIAL) && removedNews.contains(analyzer.stack.get(arg0idx));
 
             if (!decidedOnNew) {
                 try {
@@ -219,12 +226,14 @@ public class SandboxAdapter extends ClassVisitor {
 
         @Override
         public void visitInvokeDynamicInsn(String name, String desc, Handle bsm, Object... bsmArgs) {
+            labels.clear();
             // TODO
             super.visitInvokeDynamicInsn(name, desc, bsm, bsmArgs);
         }
 
         @Override
         public void visitLdcInsn(Object cst) {
+            labels.clear();
             if (cst instanceof Handle) {
                 Handle handle = (Handle) cst;
                 InvocationType invtype = InvocationType.fromHandleOpcode(((Handle) cst).getTag());
@@ -247,30 +256,42 @@ public class SandboxAdapter extends ClassVisitor {
             mv.visitLdcInsn(cst);
         }
 
-        /*
+
         @Override
         public void visitTypeInsn(int opcode, String type) {
             if (opcode == Opcodes.NEW) {
-                if (constructor) {
-                    ++newsSeen;
-                }
                 boolean should;
                 try {
                     // We don't yet know the method signature of the initializer, so we pass null as desc.
+                    // The policy is supposed to return true if and only if they're sure they want to rewrite the call, no matter what constructor signature it is.
                     should = policy.shouldIntercept(clazz, InvocationType.INVOKENEWSPECIAL, Type.getObjectType(type), INIT, null);
-                    constructors.put(type, should);
                 } catch (RewriteAbortException e) {
                     throw new WrappedCheckedException(e);
                 }
                 if (should) {
-                    newJustSeen = true;
-                    return; // We remove it because we convert <init> to invokedynamic
+                    removedNews.addAll(labels);
+                    // We convert <init> to invokedynamic, so we don't need to call NEW.
+                    // We still need to have something in place of the uninitialized object reference, so we put null there.
+                    mv.visitInsn(Opcodes.ACONST_NULL);
+
+                    labels.clear(); // before we return
+                    return;
                 }
             }
             mv.visitTypeInsn(opcode, type);
+            labels.clear();
         }
-         */
 
+        @Override
+        public void visitLabel(Label label) {
+            labels.add(label);
+            super.visitLabel(label);
+        }
+
+        @Override
+        public void visitOtherInsn() {
+            labels.clear();
+        }
         /*
         @Override
         public void visitInsn(int opcode) {

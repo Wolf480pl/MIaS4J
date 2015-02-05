@@ -17,27 +17,25 @@
  */
 package com.github.wolf480pl.sandbox;
 
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.IOException;
+import org.objectweb.asm.Type;
 
+import com.github.wolf480pl.sandbox.core.InvocationType;
+import com.github.wolf480pl.sandbox.core.rewrite.RewriteAbortException;
 import com.github.wolf480pl.sandbox.core.rewrite.RewritePolicy;
 
-public class Rewrite {
+public class ChangeMindPolicy implements RewritePolicy {
+    private final boolean eventualDecision;
 
-    public static void main(String[] args) throws IOException {
-        boolean bypass = false;
-        if (args.length > 2) {
-            bypass = args[2].equalsIgnoreCase("true");
+    public ChangeMindPolicy(boolean eventualDecision) {
+        this.eventualDecision = eventualDecision;
+    }
+
+    @Override
+    public boolean shouldIntercept(Type caller, InvocationType type, Type owner, String name, Type desc) throws RewriteAbortException {
+        if (type == InvocationType.INVOKENEWSPECIAL && desc == null) {
+            return !eventualDecision;
         }
-        FileInputStream fis = new FileInputStream(args[0]);
-        Transformer t = bypass ? new Transformer(RewritePolicy.NEVER_INTERCEPT) : new Transformer();
-        // Transformer t = bypass ? new Transformer(new ChangeMindPolicy(false)) : new Transformer(new ChangeMindPolicy(true));
-        FileOutputStream fos = new FileOutputStream(args[1]);
-        fos.write(t.transform("", fis));
-        fis.close();
-        fos.flush();
-        fos.close();
+        return eventualDecision;
     }
 
 }

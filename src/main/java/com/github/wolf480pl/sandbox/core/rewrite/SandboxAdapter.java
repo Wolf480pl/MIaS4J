@@ -150,9 +150,6 @@ public class SandboxAdapter extends ClassVisitor {
                 Type nt = Type.getMethodType(ownerType, methType.getArgumentTypes());
                 desc = nt.getDescriptor();
 
-                /*mv.visitInvokeDynamicInsn(name, desc,
-                        new Handle(Opcodes.H_INVOKESTATIC, Type.getInternalName(Bootstraps.class), WRAPINVOKE_NAME, WRAPINVOKE_DESC),
-                        invtype.id(), ownerType.getClassName(), methType);*/
                 mv.visitInvokeDynamicInsn("init", desc, new Handle(Opcodes.H_INVOKESTATIC, Type.getInternalName(Bootstraps.class), WRAPCONSTRUCTOR_NAME, WRAPCONSTRUCTOR_DESC),
                         ownerType.getClassName(), methType);
 
@@ -189,15 +186,6 @@ public class SandboxAdapter extends ClassVisitor {
                     mv.visitVarInsn(Opcodes.ALOAD, local);
                     ++currentStack;
                 }
-
-                /*
-                for (int i = 0; i < lowestStack; ++i) {
-                    if (analyzer.stack.get(i) == uninitialized) {
-                        // Crap... a copy of our uninitialized reference is buried somewhere in the stack... we can't fix this yet, so... I guess we crash
-                        throw new UnsupportedOperationException("Couldn't rewrite constructor: An uninitialized reference to " + owner + " was buried deep in the stack");
-                    }
-                }
-                 */
 
                 // replace all occurrences of the uninitialized reference in locals with the return value of our metod handle
                 for (int i = 0; i < analyzer.locals.size(); ++i) {
@@ -292,22 +280,6 @@ public class SandboxAdapter extends ClassVisitor {
         public void visitOtherInsn() {
             labels.clear();
         }
-        /*
-        @Override
-        public void visitInsn(int opcode) {
-            if (newJustSeen && opcode == Opcodes.DUP) {
-                // We remove it because we convert <init> to invokedynamic
-            } else {
-                mv.visitInsn(opcode);
-            }
-            newJustSeen = false;
-        }
-
-        @Override
-        public void visitOtherInsn() {
-            newJustSeen = false;
-        }
-         */
 
         protected void findReplaceInStack(Object find, int replaceLocal, int firstFreeLocal, int bottom, int top) {
             int loc = firstFreeLocal;

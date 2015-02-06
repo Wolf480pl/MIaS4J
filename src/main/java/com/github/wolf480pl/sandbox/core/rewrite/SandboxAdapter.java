@@ -39,6 +39,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.github.wolf480pl.sandbox.core.InvocationType;
+import com.github.wolf480pl.sandbox.core.runtime.ArgumentPack;
 import com.github.wolf480pl.sandbox.core.runtime.Bootstraps;
 import com.github.wolf480pl.sandbox.util.SequenceMethodVisitor;
 import com.github.wolf480pl.sandbox.util.WrappedCheckedException;
@@ -82,9 +83,20 @@ public class SandboxAdapter extends ClassVisitor {
         public static final String WRAPCONSTRUCTOR_DESC = Type.getMethodDescriptor(getType(CallSite.class), getType(MethodHandles.Lookup.class), getType(String.class), getType(MethodType.class),
                 getType(String.class), getType(MethodType.class));
 
+        public static final String WRAPSUPERCONSTRUCTORARGS_NAME = Bootstraps.WRAPSUPERCONSTRUCTORARGS_NAME;
+        public static final String WRAPSUPERCONSTRUCTORARGS_DESC = Type.getMethodDescriptor(getType(CallSite.class), getType(MethodHandles.Lookup.class), getType(String.class),
+                getType(MethodType.class), getType(String.class), getType(MethodType.class));
+
+        public static final String WRAPSUPERCONSTRUCTORRES_NAME = Bootstraps.WRAPSUPERCONSTRUCTORRES_NAME;
+        public static final String WRAPSUPERCONSTRUCTORRES_DESC = Type.getMethodDescriptor(getType(CallSite.class), getType(MethodHandles.Lookup.class), getType(String.class),
+                getType(MethodType.class), getType(String.class), getType(MethodType.class));
+
         public static final String WRAPHANDLE_NAME = Bootstraps.WRAPHANDLE_NAME;
         public static final String WRAPHANDLE_DESC = Type.getMethodDescriptor(getType(CallSite.class), getType(MethodHandles.Lookup.class), getType(String.class), getType(MethodType.class),
                 Type.INT_TYPE, getType(String.class), getType(MethodType.class));
+
+        public static final String[] ARGPACK_NAMES = makeArgPackNameTable();
+        public static final String[] ARGPACK_DESCS = makeArgPackDescTable();
 
         private final RewritePolicy policy;
         private final Type clazz;
@@ -124,9 +136,38 @@ public class SandboxAdapter extends ClassVisitor {
             LOG.debug("methType: " + methType);
             LOG.debug("arg&ret size: " + argAndReturnSizes + " stack size: " + analyzer.stack.size() + " arg0idx: " + arg0idx);
             if (constructor && invtype == InvocationType.INVOKENEWSPECIAL) {
+                // FIXME: I'm doing this before checking policy... baka! baka! baka!
                 if (analyzer.stack.get(arg0idx) == Opcodes.UNINITIALIZED_THIS) {
-                    //TODO: Intercept these somehow, too
+                    int thisLocal;
+                    int freeLocal = analyzer.locals.size();
+                    if (analyzer.locals.get(0) == Opcodes.UNINITIALIZED_THIS) {
+                        thisLocal = 0;
+                    } else {
+                        // TODO
+                        throw new UnsupportedOperationException();
+                    }
+
+                    // Filter the arguments
+                    mv.visitInvokeDynamicInsn("init", desc, new Handle(Opcodes.H_INVOKESTATIC, Type.getInternalName(Bootstraps.class), WRAPSUPERCONSTRUCTORARGS_NAME, WRAPSUPERCONSTRUCTORARGS_DESC),
+                            ownerType.getClassName(), methType);
+                    int packLocal = freeLocal++;
+                    mv.visitVarInsn(Opcodes.ASTORE, packLocal);
+                    mv.visitVarInsn(Opcodes.ALOAD, thisLocal);
+                    for (Type argType : methType.getArgumentTypes()) {
+                        if (argType.getSort() == Type.VOID) {
+                            continue;
+                        }
+                        mv.visitVarInsn(Opcodes.ALOAD, packLocal);
+                        mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, Type.getInternalName(ArgumentPack.class), ARGPACK_NAMES[argType.getSort()], ARGPACK_DESCS[argType.getSort()], false);
+                    }
+
+                    // Call the original superinitializer
                     mv.visitMethodInsn(opcode, owner, name, desc, itf);
+
+                    // Give the policy a chance to inspect the outcome of the superinitializer call, and possibly throw something
+                    mv.visitVarInsn(Opcodes.ALOAD, thisLocal);
+                    mv.visitInvokeDynamicInsn("init", Type.getMethodDescriptor(Type.VOID_TYPE, ownerType), new Handle(Opcodes.H_INVOKESTATIC, Type.getInternalName(Bootstraps.class),
+                            WRAPSUPERCONSTRUCTORRES_NAME, WRAPSUPERCONSTRUCTORRES_DESC), ownerType.getClassName(), methType);
                     return;
                 }
             }
@@ -339,5 +380,44 @@ public class SandboxAdapter extends ClassVisitor {
                 }
             }
         }
+
+        public static String[] makeArgPackNameTable() {
+            String[] t = new String[Type.METHOD];
+            t[Type.VOID] = null;
+            t[Type.BOOLEAN] = ArgumentPack.NEXTINT_NAME;
+            t[Type.CHAR] = ArgumentPack.NEXTINT_NAME;
+            t[Type.BYTE] = ArgumentPack.NEXTINT_NAME;
+            t[Type.SHORT] = ArgumentPack.NEXTINT_NAME;
+            t[Type.INT] = ArgumentPack.NEXTINT_NAME;
+            t[Type.FLOAT] = ArgumentPack.NEXTFLOAT_NAME;
+            t[Type.LONG] = ArgumentPack.NEXTLONG_NAME;
+            t[Type.DOUBLE] = ArgumentPack.NEXTDOUBLE_NAME;
+            t[Type.ARRAY] = ArgumentPack.NEXTOBJ_NAME;
+            t[Type.OBJECT] = ArgumentPack.NEXTOBJ_NAME;
+            return t;
+        }
+
+        public static final String ARGPACK_NEXTINT_DESC = Type.getMethodDescriptor(Type.INT_TYPE);
+        public static final String ARGPACK_NEXTFLOAT_DESC = Type.getMethodDescriptor(Type.FLOAT_TYPE);
+        public static final String ARGPACK_NEXTLONG_DESC = Type.getMethodDescriptor(Type.LONG_TYPE);
+        public static final String ARGPACK_NEXTDOUBLE_DESC = Type.getMethodDescriptor(Type.DOUBLE_TYPE);
+        public static final String ARGPACK_NEXTOBJ_DESC = Type.getMethodDescriptor(Type.getType(Object.class));
+
+        public static String[] makeArgPackDescTable() {
+            String[] t = new String[Type.METHOD];
+            t[Type.VOID] = null;
+            t[Type.BOOLEAN] = ARGPACK_NEXTINT_DESC;
+            t[Type.CHAR] = ARGPACK_NEXTINT_DESC;
+            t[Type.BYTE] = ARGPACK_NEXTINT_DESC;
+            t[Type.SHORT] = ARGPACK_NEXTINT_DESC;
+            t[Type.INT] = ARGPACK_NEXTINT_DESC;
+            t[Type.FLOAT] = ARGPACK_NEXTFLOAT_DESC;
+            t[Type.LONG] = ARGPACK_NEXTLONG_DESC;
+            t[Type.DOUBLE] = ARGPACK_NEXTDOUBLE_DESC;
+            t[Type.ARRAY] = ARGPACK_NEXTOBJ_DESC;
+            t[Type.OBJECT] = ARGPACK_NEXTOBJ_DESC;
+            return t;
+        }
+
     }
 }

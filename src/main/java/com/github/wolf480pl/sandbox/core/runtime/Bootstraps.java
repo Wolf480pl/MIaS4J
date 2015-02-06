@@ -99,6 +99,22 @@ public class Bootstraps {
         return wrapInvoke(caller, "<init>", invokedType, InvocationType.INVOKENEWSPECIAL.id(), owner, originalType);
     }
 
+    public static final String WRAPSUPERCONSTRUCTORARGS_NAME = "wrapSuperConstructorArguments";
+
+    public static CallSite wrapSuperConstructorArguments(MethodHandles.Lookup caller, String invokedName, MethodType invokedType, String owner, MethodType originalType) {
+        // TODO
+
+        return null;
+    }
+
+    public static final String WRAPSUPERCONSTRUCTORRES_NAME = "wrapSuperConstructorResult";
+
+    public static CallSite wrapSuperConstructorResult(MethodHandles.Lookup caller, String invokedName, MethodType invokedType, String owner, MethodType originalType) {
+        // TODO
+
+        return null;
+    }
+
     public static CallSite wrapInvokeDynamic(MethodHandles.Lookup caller, String invokedName, MethodType invokedType, Object... args) {
         // TODO
         return null;

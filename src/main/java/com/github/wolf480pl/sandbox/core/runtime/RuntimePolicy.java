@@ -20,6 +20,9 @@ package com.github.wolf480pl.sandbox.core.runtime;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles.Lookup;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 public interface RuntimePolicy {
 
     // TODO: Maybe it should be allowed to throw something?
@@ -42,14 +45,20 @@ public interface RuntimePolicy {
 
     public static class LoggingPolicy implements RuntimePolicy {
         private final RuntimePolicy pol;
+        private final Logger log;
 
         public LoggingPolicy(RuntimePolicy pol) {
+            this(LoggerFactory.getLogger("LoggingPolicy"), pol);
+        }
+
+        public LoggingPolicy(Logger logger, RuntimePolicy pol) {
             this.pol = pol;
+            this.log = logger;
         }
 
         @Override
         public MethodHandle intercept(Lookup caller, MethodHandlePrototype method) {
-            System.err.println(caller + " wants " + method.getOwner() + "." + method.getName() + " " + method.getMethodType());
+            log.info(caller + " wants " + method.getOwner() + "." + method.getName() + " " + method.getMethodType());
             return pol.intercept(caller, method);
         }
     }

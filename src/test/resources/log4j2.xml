@@ -4,6 +4,9 @@
     <Console name="Console" target="SYSTEM_ERR">
       <PatternLayout pattern="%d{HH:mm:ss} [%highlight{%-5level}] [%logger{36}] %msg%n"/>
     </Console>
+    <Console name="ConsolePlain" target="SYSTEM_ERR">
+      <PatternLayout pattern="%msg%n"/>
+    </Console>
     <RollingFile name="RollingFile" fileName="sandbox-test.log" filePattern="sandbox-test.%i.log">
       <PatternLayout pattern="%d{HH:mm:ss} [%-5level] %logger{36} - %msg%n"/>
       <SizeBasedTriggeringPolicy size="50000" />
@@ -14,5 +17,8 @@
       <AppenderRef ref="Console"/>
       <!-- <AppenderRef ref="RollingFile"/>-->
     </Root>
+    <Logger name="LoggingPolicy" level="info" additivity="false">
+      <AppenderRef ref="ConsolePlain"/>
+    </Logger>
   </Loggers>
 </Configuration>

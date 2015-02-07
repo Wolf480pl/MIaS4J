@@ -133,10 +133,24 @@ public class SandboxAdapter extends ClassVisitor {
             int argAndReturnSizes = methType.getArgumentsAndReturnSizes();
             int arg0idx = analyzer.stack.size() - (argAndReturnSizes >> 2);
 
+            boolean should = true;
+            boolean decidedOnNew = (invtype == InvocationType.INVOKENEWSPECIAL) && removedNews.contains(analyzer.stack.get(arg0idx));
+
+            if (!decidedOnNew) {
+                try {
+                    should = policy.shouldIntercept(clazz, invtype, ownerType, name, methType);
+                } catch (RewriteAbortException e) {
+                    throw new WrappedCheckedException(e);
+                }
+            }
+            if (!should) {
+                mv.visitMethodInsn(opcode, owner, name, desc, itf);
+                return;
+            }
+
             LOG.debug("methType: " + methType);
             LOG.debug("arg&ret size: " + argAndReturnSizes + " stack size: " + analyzer.stack.size() + " arg0idx: " + arg0idx);
             if (constructor && invtype == InvocationType.INVOKENEWSPECIAL) {
-                // FIXME: I'm doing this before checking policy... baka! baka! baka!
                 if (analyzer.stack.get(arg0idx) == Opcodes.UNINITIALIZED_THIS) {
                     int thisLocal;
                     int freeLocal = analyzer.locals.size();
@@ -170,21 +184,6 @@ public class SandboxAdapter extends ClassVisitor {
                             WRAPSUPERCONSTRUCTORRES_NAME, WRAPSUPERCONSTRUCTORRES_DESC), ownerType.getClassName(), methType);
                     return;
                 }
-            }
-
-            boolean should = true;
-            boolean decidedOnNew = (invtype == InvocationType.INVOKENEWSPECIAL) && removedNews.contains(analyzer.stack.get(arg0idx));
-
-            if (!decidedOnNew) {
-                try {
-                    should = policy.shouldIntercept(clazz, invtype, ownerType, name, methType);
-                } catch (RewriteAbortException e) {
-                    throw new WrappedCheckedException(e);
-                }
-            }
-            if (!should) {
-                mv.visitMethodInsn(opcode, owner, name, desc, itf);
-                return;
             }
 
             if (invtype == InvocationType.INVOKENEWSPECIAL) {

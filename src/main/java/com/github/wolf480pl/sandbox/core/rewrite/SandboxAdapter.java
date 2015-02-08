@@ -120,18 +120,22 @@ public class SandboxAdapter extends ClassVisitor {
         public void visitMethodInsn(int opcode, String owner, String name, String desc, boolean itf) {
             labels.clear();
 
-            InvocationType invtype;
-            if (opcode == Opcodes.INVOKESPECIAL && name.equals(INIT)) {
-                invtype = InvocationType.INVOKENEWSPECIAL;
-            } else {
-                invtype = InvocationType.fromInstruction(opcode);
-            }
-
             Type ownerType = Type.getObjectType(owner);
             Type methType = Type.getMethodType(desc);
 
             int argAndReturnSizes = methType.getArgumentsAndReturnSizes();
             int arg0idx = analyzer.stack.size() - (argAndReturnSizes >> 2);
+
+            InvocationType invtype;
+            if (opcode == Opcodes.INVOKESPECIAL && name.equals(INIT)) {
+                if (constructor && analyzer.stack.get(arg0idx) == Opcodes.UNINITIALIZED_THIS) {
+                    invtype = InvocationType.INVOKESUPERINITSPECIAL;
+                } else {
+                    invtype = InvocationType.INVOKENEWSPECIAL;
+                }
+            } else {
+                invtype = InvocationType.fromInstruction(opcode);
+            }
 
             boolean should = true;
             boolean decidedOnNew = (invtype == InvocationType.INVOKENEWSPECIAL) && removedNews.contains(analyzer.stack.get(arg0idx));
@@ -150,40 +154,38 @@ public class SandboxAdapter extends ClassVisitor {
 
             LOG.debug("methType: " + methType);
             LOG.debug("arg&ret size: " + argAndReturnSizes + " stack size: " + analyzer.stack.size() + " arg0idx: " + arg0idx);
-            if (constructor && invtype == InvocationType.INVOKENEWSPECIAL) {
-                if (analyzer.stack.get(arg0idx) == Opcodes.UNINITIALIZED_THIS) {
-                    int thisLocal;
-                    int freeLocal = analyzer.locals.size();
-                    if (analyzer.locals.get(0) == Opcodes.UNINITIALIZED_THIS) {
-                        thisLocal = 0;
-                    } else {
-                        // TODO
-                        throw new UnsupportedOperationException();
-                    }
-
-                    // Filter the arguments
-                    mv.visitInvokeDynamicInsn("init", desc, new Handle(Opcodes.H_INVOKESTATIC, Type.getInternalName(Bootstraps.class), WRAPSUPERCONSTRUCTORARGS_NAME, WRAPSUPERCONSTRUCTORARGS_DESC),
-                            ownerType.getClassName(), methType);
-                    int packLocal = freeLocal++;
-                    mv.visitVarInsn(Opcodes.ASTORE, packLocal);
-                    mv.visitVarInsn(Opcodes.ALOAD, thisLocal);
-                    for (Type argType : methType.getArgumentTypes()) {
-                        if (argType.getSort() == Type.VOID) {
-                            continue;
-                        }
-                        mv.visitVarInsn(Opcodes.ALOAD, packLocal);
-                        mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, Type.getInternalName(ArgumentPack.class), ARGPACK_NAMES[argType.getSort()], ARGPACK_DESCS[argType.getSort()], false);
-                    }
-
-                    // Call the original superinitializer
-                    mv.visitMethodInsn(opcode, owner, name, desc, itf);
-
-                    // Give the policy a chance to inspect the outcome of the superinitializer call, and possibly throw something
-                    mv.visitVarInsn(Opcodes.ALOAD, thisLocal);
-                    mv.visitInvokeDynamicInsn("init", Type.getMethodDescriptor(Type.VOID_TYPE, ownerType), new Handle(Opcodes.H_INVOKESTATIC, Type.getInternalName(Bootstraps.class),
-                            WRAPSUPERCONSTRUCTORRES_NAME, WRAPSUPERCONSTRUCTORRES_DESC), ownerType.getClassName(), methType);
-                    return;
+            if (invtype == InvocationType.INVOKESUPERINITSPECIAL) {
+                int thisLocal;
+                int freeLocal = analyzer.locals.size();
+                if (analyzer.locals.get(0) == Opcodes.UNINITIALIZED_THIS) {
+                    thisLocal = 0;
+                } else {
+                    // TODO
+                    throw new UnsupportedOperationException();
                 }
+
+                // Filter the arguments
+                mv.visitInvokeDynamicInsn("init", desc, new Handle(Opcodes.H_INVOKESTATIC, Type.getInternalName(Bootstraps.class), WRAPSUPERCONSTRUCTORARGS_NAME, WRAPSUPERCONSTRUCTORARGS_DESC),
+                        ownerType.getClassName(), methType);
+                int packLocal = freeLocal++;
+                mv.visitVarInsn(Opcodes.ASTORE, packLocal);
+                mv.visitVarInsn(Opcodes.ALOAD, thisLocal);
+                for (Type argType : methType.getArgumentTypes()) {
+                    if (argType.getSort() == Type.VOID) {
+                        continue;
+                    }
+                    mv.visitVarInsn(Opcodes.ALOAD, packLocal);
+                    mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, Type.getInternalName(ArgumentPack.class), ARGPACK_NAMES[argType.getSort()], ARGPACK_DESCS[argType.getSort()], false);
+                }
+
+                // Call the original superinitializer
+                mv.visitMethodInsn(opcode, owner, name, desc, itf);
+
+                // Give the policy a chance to inspect the outcome of the superinitializer call, and possibly throw something
+                mv.visitVarInsn(Opcodes.ALOAD, thisLocal);
+                mv.visitInvokeDynamicInsn("init", Type.getMethodDescriptor(Type.VOID_TYPE, ownerType), new Handle(Opcodes.H_INVOKESTATIC, Type.getInternalName(Bootstraps.class),
+                        WRAPSUPERCONSTRUCTORRES_NAME, WRAPSUPERCONSTRUCTORRES_DESC), ownerType.getClassName(), methType);
+                return;
             }
 
             if (invtype == InvocationType.INVOKENEWSPECIAL) {

@@ -27,22 +27,29 @@ public enum InvocationType {
     INVOKEVIRTUAL(Opcodes.H_INVOKEVIRTUAL, Opcodes.INVOKEVIRTUAL),
     INVOKESTATIC(Opcodes.H_INVOKESTATIC, Opcodes.INVOKESTATIC),
     INVOKESPECIAL(Opcodes.H_INVOKESPECIAL, Opcodes.INVOKESPECIAL),
-    INVOKENEWSPECIAL(Opcodes.H_NEWINVOKESPECIAL, Opcodes.INVOKESPECIAL, true),
+    INVOKESUPERINITSPECIAL(Opcodes.H_INVOKESPECIAL, Opcodes.INVOKESPECIAL, false, false), // FIXME: This one's id() isn't unique, shouldn't be a problem for now, but we should fix it anyway
+    INVOKENEWSPECIAL(Opcodes.H_NEWINVOKESPECIAL, Opcodes.INVOKESPECIAL, false),
     INVOKEINTERFACE(Opcodes.H_INVOKEINTERFACE, Opcodes.INVOKEINTERFACE);
 
 
     public final int handleOpcode;
     public final int insnOpcode;
-    private final boolean onlyHOpcode;
+    private final boolean registerHOpcode;
+    private final boolean registerIOpcode;
 
     private InvocationType(int hopcode, int insn) {
-        this(hopcode, insn, false);
+        this(hopcode, insn, true);
     }
 
-    private InvocationType(int hopcode, int insn, boolean onlyHOpcode) {
+    private InvocationType(int hopcode, int insn, boolean registerIOpcode) {
+        this(hopcode, insn, registerIOpcode, true);
+    }
+
+    private InvocationType(int hopcode, int insn, boolean registerIOpcode, boolean registerHOpcode) {
         this.handleOpcode = hopcode;
         this.insnOpcode = insn;
-        this.onlyHOpcode = onlyHOpcode;
+        this.registerHOpcode = registerHOpcode;
+        this.registerIOpcode = registerIOpcode;
     }
 
     public int id() {
@@ -59,8 +66,10 @@ public enum InvocationType {
     }
 
     private static void register(InvocationType t) {
-        byHOpcode[t.handleOpcode] = t;
-        if (!t.onlyHOpcode) {
+        if (t.registerHOpcode) {
+            byHOpcode[t.handleOpcode] = t;
+        }
+        if (t.registerIOpcode) {
             byIOpcode.put(t.insnOpcode, t);
         }
     }

@@ -96,7 +96,7 @@ public class SandboxAdapter extends ClassVisitor {
                 Type.INT_TYPE, getType(String.class), getType(MethodType.class));
 
         public static final String[] ARGPACK_NAMES = makeArgPackNameTable();
-        public static final String[] ARGPACK_DESCS = makeArgPackDescTable();
+        public static final String[] ARGPACK_DESCS;
 
         private final RewritePolicy policy;
         private final Type clazz;
@@ -164,9 +164,11 @@ public class SandboxAdapter extends ClassVisitor {
                     throw new UnsupportedOperationException();
                 }
 
+                Type nt = Type.getMethodType(getType(ArgumentPack.class), methType.getArgumentTypes());
+
                 // Filter the arguments
-                mv.visitInvokeDynamicInsn("init", desc, new Handle(Opcodes.H_INVOKESTATIC, Type.getInternalName(Bootstraps.class), WRAPSUPERCONSTRUCTORARGS_NAME, WRAPSUPERCONSTRUCTORARGS_DESC),
-                        ownerType.getClassName(), methType);
+                mv.visitInvokeDynamicInsn("init", nt.getDescriptor(), new Handle(Opcodes.H_INVOKESTATIC, Type.getInternalName(Bootstraps.class), WRAPSUPERCONSTRUCTORARGS_NAME,
+                        WRAPSUPERCONSTRUCTORARGS_DESC), ownerType.getClassName(), methType);
                 int packLocal = freeLocal++;
                 mv.visitVarInsn(Opcodes.ASTORE, packLocal);
                 mv.visitVarInsn(Opcodes.ALOAD, thisLocal);
@@ -176,6 +178,9 @@ public class SandboxAdapter extends ClassVisitor {
                     }
                     mv.visitVarInsn(Opcodes.ALOAD, packLocal);
                     mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, Type.getInternalName(ArgumentPack.class), ARGPACK_NAMES[argType.getSort()], ARGPACK_DESCS[argType.getSort()], false);
+                    if (ARGPACK_DESCS[argType.getSort()] == ARGPACK_NEXTOBJ_DESC) {
+                        mv.visitTypeInsn(Opcodes.CHECKCAST, argType.getInternalName());
+                    }
                 }
 
                 // Call the original superinitializer
@@ -418,6 +423,10 @@ public class SandboxAdapter extends ClassVisitor {
             t[Type.ARRAY] = ARGPACK_NEXTOBJ_DESC;
             t[Type.OBJECT] = ARGPACK_NEXTOBJ_DESC;
             return t;
+        }
+
+        static {
+            ARGPACK_DESCS = makeArgPackDescTable();
         }
 
     }

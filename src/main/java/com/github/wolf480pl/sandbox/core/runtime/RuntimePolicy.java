@@ -28,6 +28,9 @@ public interface RuntimePolicy {
     // TODO: Maybe it should be allowed to throw something?
     MethodHandle intercept(Lookup caller, MethodHandlePrototype method);
 
+    MethodHandle interceptSuperInitArgs(Lookup caller, MethodInfo method, MethodHandle handle);
+
+    MethodHandle interceptSuperInitResult(Lookup caller, MethodInfo method, MethodHandle handle);
 
     // Useful implementations
     // TODO: Move these elsewhere
@@ -40,6 +43,16 @@ public interface RuntimePolicy {
                 // TODO: are we sure this is the correct handling?
                 throw new RuntimeException(e);
             }
+        }
+
+        @Override
+        public MethodHandle interceptSuperInitArgs(Lookup caller, MethodInfo method, MethodHandle handle) {
+            return handle;
+        }
+
+        @Override
+        public MethodHandle interceptSuperInitResult(Lookup caller, MethodInfo method, MethodHandle handle) {
+            return handle;
         }
     }
 
@@ -60,6 +73,18 @@ public interface RuntimePolicy {
         public MethodHandle intercept(Lookup caller, MethodHandlePrototype method) {
             log.info(caller + " wants " + method.getOwner() + "." + method.getName() + " " + method.getMethodType());
             return pol.intercept(caller, method);
+        }
+
+        @Override
+        public MethodHandle interceptSuperInitArgs(Lookup caller, MethodInfo method, MethodHandle handle) {
+            log.info(caller + " wants super " + method.getOwner() + "." + method.getName() + " " + method.getMethodType());
+            return pol.interceptSuperInitArgs(caller, method, handle);
+        }
+
+        @Override
+        public MethodHandle interceptSuperInitResult(Lookup caller, MethodInfo method, MethodHandle handle) {
+            log.info(caller + " after super " + method.getOwner() + "." + method.getName() + " " + method.getMethodType());
+            return pol.interceptSuperInitResult(caller, method, handle);
         }
     }
 }

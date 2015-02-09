@@ -42,7 +42,7 @@ public class Bootstraps {
             throw new IllegalStateException("tried to set policy twice");
         }
     }
-    
+
     public static RuntimePolicy getPolicy() {
         return policy;
     }
@@ -51,7 +51,7 @@ public class Bootstraps {
     }
 
     public static final String WRAPINVOKE_NAME = "wrapInvoke";
-    
+
     public static CallSite wrapInvoke(MethodHandles.Lookup caller, String invokedName, MethodType invokedType, int opcode, String owner, MethodType originalType) throws NoSuchMethodException,
             IllegalAccessException, ClassNotFoundException {
         InvocationType invType = InvocationType.fromID(opcode);
@@ -62,9 +62,9 @@ public class Bootstraps {
 
     public static MethodHandle makeHandle(MethodHandles.Lookup caller, String invokedName, MethodType invokedType, InvocationType invType, String owner, MethodType originalType) throws NoSuchMethodException,
             IllegalAccessException, ClassNotFoundException {
-        
+
         return policy.intercept(caller, new MethodHandlePrototype(invType, owner, invokedName, originalType));
-        
+
         /*
         System.err.println(caller + " wants " + owner + "." + invokedName + " " + invokedType); // TODO: Remove once we implement policies
         Class<?> ownerCls = caller.lookupClass().getClassLoader().loadClass(owner);
@@ -93,7 +93,7 @@ public class Bootstraps {
     }
 
     public static final String WRAPCONSTRUCTOR_NAME = "wrapConstructor";
-    
+
     public static CallSite wrapConstructor(MethodHandles.Lookup caller, String invokedName, MethodType invokedType, String owner, MethodType originalType) throws NoSuchMethodException,
             IllegalAccessException, ClassNotFoundException {
         return wrapInvoke(caller, "<init>", invokedType, InvocationType.INVOKENEWSPECIAL.id(), owner, originalType);
@@ -102,17 +102,39 @@ public class Bootstraps {
     public static final String WRAPSUPERCONSTRUCTORARGS_NAME = "wrapSuperConstructorArguments";
 
     public static CallSite wrapSuperConstructorArguments(MethodHandles.Lookup caller, String invokedName, MethodType invokedType, String owner, MethodType originalType) {
-        // TODO
+        InvocationType invType = InvocationType.INVOKESUPERINITSPECIAL;
 
-        return null;
+        MethodHandle defaultHandle;
+        try {
+            defaultHandle = caller.findConstructor(ArgumentPack.class, MethodType.methodType(Void.TYPE, Object[].class));
+        } catch (NoSuchMethodException | IllegalAccessException e) {
+            throw new RuntimeException(e); // TODO: sure?
+        }
+        defaultHandle = defaultHandle.asCollector(Object[].class, originalType.parameterCount());
+        defaultHandle = defaultHandle.asType(invokedType);
+
+        MethodInfo method = new ImmutableMethodInfo(invType, owner, invokedName, originalType);
+
+        MethodHandle handle = policy.interceptSuperInitArgs(caller, method, defaultHandle);
+
+        return new ConstantCallSite(handle);
     }
 
     public static final String WRAPSUPERCONSTRUCTORRES_NAME = "wrapSuperConstructorResult";
 
     public static CallSite wrapSuperConstructorResult(MethodHandles.Lookup caller, String invokedName, MethodType invokedType, String owner, MethodType originalType) {
-        // TODO
+        InvocationType invType = InvocationType.INVOKESUPERINITSPECIAL;
 
-        return null;
+        MethodHandle defaultHandle = MethodHandles.constant(Object.class, null);
+        Class<?> ownerCls = Object.class; // TODO: will this work?
+        defaultHandle = MethodHandles.dropArguments(defaultHandle, 0, ownerCls);
+        defaultHandle = defaultHandle.asType(invokedType);
+
+        MethodInfo method = new ImmutableMethodInfo(invType, owner, invokedName, originalType);
+
+        MethodHandle handle = policy.interceptSuperInitResult(caller, method, defaultHandle);
+
+        return new ConstantCallSite(handle);
     }
 
     public static CallSite wrapInvokeDynamic(MethodHandles.Lookup caller, String invokedName, MethodType invokedType, Object... args) {
@@ -121,7 +143,7 @@ public class Bootstraps {
     }
 
     public static final String WRAPHANDLE_NAME = "wrapHandle";
-    
+
     public static CallSite wrapHandle(MethodHandles.Lookup caller, String invokedName, MethodType invokedType, int opcode, String owner, MethodType originalType) throws NoSuchMethodException,
             IllegalAccessException, ClassNotFoundException {
         InvocationType invType = InvocationType.fromID(opcode);

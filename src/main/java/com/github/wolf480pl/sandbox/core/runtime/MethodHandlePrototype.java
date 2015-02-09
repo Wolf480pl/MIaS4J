@@ -23,7 +23,7 @@ import java.lang.invoke.MethodType;
 
 import com.github.wolf480pl.sandbox.core.InvocationType;
 
-public class MethodHandlePrototype implements Cloneable {
+public class MethodHandlePrototype implements Cloneable, MethodInfo {
     private InvocationType invType;
     private String owner;
     private Class<?> ownerClass;
@@ -76,6 +76,7 @@ public class MethodHandlePrototype implements Cloneable {
         return handle;
     }
 
+    @Override
     public InvocationType getInvocationType() {
         return invType;
     }
@@ -84,6 +85,7 @@ public class MethodHandlePrototype implements Cloneable {
         this.invType = invType;
     }
 
+    @Override
     public String getOwner() {
         return owner;
     }
@@ -106,6 +108,7 @@ public class MethodHandlePrototype implements Cloneable {
         return ownerClass;
     }
 
+    @Override
     public String getName() {
         return name;
     }
@@ -114,6 +117,7 @@ public class MethodHandlePrototype implements Cloneable {
         this.name = name;
     }
 
+    @Override
     public MethodType getMethodType() {
         return methodType;
     }

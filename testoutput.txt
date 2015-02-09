@@ -4,10 +4,14 @@ Test1 wants java.io.PrintStream.println (Object)void
 hey
 Test1 wants java.lang.Integer.valueOf (int)Integer
 Test1 wants java.util.LinkedList.<init> ()void
+Test1 wants super Test1.init (Integer,List)void
+Test1 wants super java.lang.Object.init ()void
+Test1 after super java.lang.Object.init ()void
 Test1 wants java.util.List.add (Object)boolean
+Test1 after super Test1.init (Integer,List)void
 Test1 wants java.util.Date.<init> ()void
 Test1 wants Test1.say (Object,int)int
-Mon Dec 29 12:46:43 CET 2014
+Mon Feb 09 10:58:47 CET 2015
 Test1 wants java.io.PrintStream.println (String)void
 byebye
 bye

@@ -55,6 +55,9 @@ public class Bootstraps {
     public static CallSite wrapInvoke(MethodHandles.Lookup caller, String invokedName, MethodType invokedType, int opcode, String owner, MethodType originalType) throws NoSuchMethodException,
             IllegalAccessException, ClassNotFoundException {
         InvocationType invType = InvocationType.fromID(opcode);
+        if (invType == null) {
+            throw new IllegalArgumentException("Invalid InvocationType ID: " + opcode);
+        }
 
         MethodHandle handle = makeHandle(caller, invokedName, invokedType, invType, owner, originalType);
         return new ConstantCallSite(handle);
@@ -121,6 +124,9 @@ public class Bootstraps {
     public static CallSite wrapHandle(MethodHandles.Lookup caller, String invokedName, MethodType invokedType, int opcode, String owner, MethodType originalType) throws NoSuchMethodException,
             IllegalAccessException, ClassNotFoundException {
         InvocationType invType = InvocationType.fromID(opcode);
+        if (invType == null) {
+            throw new IllegalArgumentException("Invalid InvocationType ID: " + opcode);
+        }
 
         MethodHandle handle = makeHandle(caller, invokedName, invokedType, invType, owner, originalType);
         return new ConstantCallSite(MethodHandles.constant(MethodHandle.class, handle));

@@ -160,8 +160,7 @@ public class SandboxAdapter extends ClassVisitor {
                 if (analyzer.locals.get(0) == Opcodes.UNINITIALIZED_THIS) {
                     thisLocal = 0;
                 } else {
-                    // TODO
-                    throw new UnsupportedOperationException();
+                    thisLocal = -1;
                 }
 
                 Type nt = Type.getMethodType(getType(ArgumentPack.class), methType.getArgumentTypes());
@@ -171,7 +170,12 @@ public class SandboxAdapter extends ClassVisitor {
                         WRAPSUPERCONSTRUCTORARGS_DESC), ownerType.getClassName(), methType);
                 int packLocal = freeLocal++;
                 mv.visitVarInsn(Opcodes.ASTORE, packLocal);
-                mv.visitVarInsn(Opcodes.ALOAD, thisLocal);
+                if (thisLocal < 0) {
+                    thisLocal = freeLocal++;
+                    mv.visitVarInsn(Opcodes.ASTORE, thisLocal);
+                    mv.visitVarInsn(Opcodes.ALOAD, thisLocal);
+                }
+
                 for (Type argType : methType.getArgumentTypes()) {
                     if (argType.getSort() == Type.VOID) {
                         continue;

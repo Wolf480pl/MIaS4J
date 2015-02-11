@@ -50,7 +50,7 @@ public class Transformer {
         ClassWriter writer = new ClassWriter(reader, ClassWriter.COMPUTE_FRAMES | ClassWriter.COMPUTE_MAXS);
         ClassVisitor visitor = new SandboxAdapter(writer, policy);
         ClassVisitor checker = new org.objectweb.asm.util.CheckClassAdapter(visitor);
-        reader.accept(checker, ClassReader.SKIP_DEBUG | ClassReader.SKIP_FRAMES);
+        reader.accept(checker, ClassReader.SKIP_DEBUG | ClassReader.EXPAND_FRAMES);
         return writer;
     }
 }

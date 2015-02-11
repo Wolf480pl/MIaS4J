@@ -124,6 +124,7 @@ public class SandboxAdapter extends ClassVisitor {
             Type methType = Type.getMethodType(desc);
 
             int argAndReturnSizes = methType.getArgumentsAndReturnSizes();
+            // FIXME: This will crash when rewriting unreachable code (analyzer.stack == null)
             int arg0idx = analyzer.stack.size() - (argAndReturnSizes >> 2);
 
             InvocationType invtype;
@@ -288,7 +289,7 @@ public class SandboxAdapter extends ClassVisitor {
                 if (should) {
 
                     mv.visitInvokeDynamicInsn(handle.getName(), Type.getMethodDescriptor(Type.getType(MethodHandle.class)), new Handle(Opcodes.H_INVOKESTATIC, Type.getInternalName(Bootstraps.class),
-                            WRAPHANDLE_NAME, WRAPHANDLE_DESC), invtype.insnOpcode, ownerType.getClassName(), methType);
+                            WRAPHANDLE_NAME, WRAPHANDLE_DESC), invtype.id(), ownerType.getClassName(), methType);
                     return;
                 }
             }

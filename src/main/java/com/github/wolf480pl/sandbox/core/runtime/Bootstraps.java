@@ -55,7 +55,7 @@ public class Bootstraps {
     public static CallSite wrapInvoke(MethodHandles.Lookup caller, String invokedName, MethodType invokedType, int opcode, String owner, MethodType originalType) throws NoSuchMethodException,
             IllegalAccessException, ClassNotFoundException {
         InvocationType invType = InvocationType.fromID(opcode);
-        // TODO access checks maybe?
+
         MethodHandle handle = makeHandle(caller, invokedName, invokedType, invType, owner, originalType);
         return new ConstantCallSite(handle);
     }
@@ -64,32 +64,6 @@ public class Bootstraps {
             IllegalAccessException, ClassNotFoundException {
 
         return policy.intercept(caller, new MethodHandlePrototype(invType, owner, invokedName, originalType));
-
-        /*
-        System.err.println(caller + " wants " + owner + "." + invokedName + " " + invokedType); // TODO: Remove once we implement policies
-        Class<?> ownerCls = caller.lookupClass().getClassLoader().loadClass(owner);
-        final MethodHandle handle;
-
-
-        switch (invType) {
-            case INVOKEINTERFACE:
-            case INVOKEVIRTUAL:
-                handle = caller.findVirtual(ownerCls, invokedName, originalType);
-                break;
-            case INVOKESTATIC:
-                handle = caller.findStatic(ownerCls, invokedName, originalType);
-                break;
-            case INVOKESPECIAL:
-                handle = caller.findSpecial(ownerCls, invokedName, originalType, caller.lookupClass());
-                break;
-            case INVOKENEWSPECIAL:
-                handle = caller.findConstructor(ownerCls, originalType);
-                break;
-            default:
-                throw new IllegalArgumentException("Unknown invoke type: " + invType);
-        }
-        return handle;
-        */
     }
 
     public static final String WRAPCONSTRUCTOR_NAME = "wrapConstructor";
@@ -147,7 +121,7 @@ public class Bootstraps {
     public static CallSite wrapHandle(MethodHandles.Lookup caller, String invokedName, MethodType invokedType, int opcode, String owner, MethodType originalType) throws NoSuchMethodException,
             IllegalAccessException, ClassNotFoundException {
         InvocationType invType = InvocationType.fromID(opcode);
-        // TODO access checks maybe?
+
         MethodHandle handle = makeHandle(caller, invokedName, invokedType, invType, owner, originalType);
         return new ConstantCallSite(MethodHandles.constant(MethodHandle.class, handle));
     }

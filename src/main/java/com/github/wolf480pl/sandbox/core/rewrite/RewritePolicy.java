@@ -39,5 +39,5 @@ public interface RewritePolicy {
      */
     boolean shouldIntercept(Type caller, InvocationType type, Type owner, String name, Type desc) throws RewriteAbortException;
 
-    Handle interceptDynamic(Type caller, String name, Type desc, Handle bootstrapMethod, Object[] bootstrapArgs, List<Object> newBootrstrapArgs) throws RewriteAbortException;
+    Handle interceptDynamic(Type caller, String name, Type desc, Handle bootstrapMethod, Object[] bootstrapArgs, List<Object> newBootstrapArgs) throws RewriteAbortException;
 }

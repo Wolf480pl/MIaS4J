@@ -27,7 +27,7 @@ import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 
-import com.github.wolf480pl.sandbox.core.rewrite.RewritePolicy;
+import com.github.wolf480pl.sandbox.core.rewrite.BlindPolicy;
 
 public class Wrap {
 
@@ -48,7 +48,7 @@ public class Wrap {
         }
 
         Transformer t = null;
-        t = bypass ? new Transformer(RewritePolicy.NEVER_INTERCEPT) : new Transformer();
+        t = bypass ? new Transformer(BlindPolicy.NEVER_INTERCEPT) : new Transformer();
         // t = bypass ? new Transformer(new ChangeMindPolicy(false)) : new Transformer(new ChangeMindPolicy(true));
         ClassLoader ldr = new SandboxClassLoader(urls.toArray(new URL[0]), t);
         Class<?> mainClass = ldr.loadClass(main);

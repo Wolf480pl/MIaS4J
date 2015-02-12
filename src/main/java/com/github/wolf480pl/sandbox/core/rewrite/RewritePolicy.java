@@ -40,25 +40,4 @@ public interface RewritePolicy {
     boolean shouldIntercept(Type caller, InvocationType type, Type owner, String name, Type desc) throws RewriteAbortException;
 
     Handle interceptDynamic(Type caller, String name, Type desc, Handle bootstrapMethod, Object[] bootstrapArgs, List<Object> newBootrstrapArgs) throws RewriteAbortException;
-
-    public static class BlindPolicy implements RewritePolicy {
-        private final boolean should;
-
-        public BlindPolicy(boolean should) {
-            this.should = should;
-        }
-
-        @Override
-        public boolean shouldIntercept(Type caller, InvocationType type, Type owner, String name, Type desc) throws RewriteAbortException {
-            return should;
-        }
-
-        @Override
-        public Handle interceptDynamic(Type caller, String name, Type desc, Handle bootstrapMethod, Object[] bootstrapArgs, List<Object> newBootstrapArgs) {
-            return null; // TODO
-        }
-    }
-
-    public static final RewritePolicy ALWAYS_INTERCEPT = new BlindPolicy(true);
-    public static final RewritePolicy NEVER_INTERCEPT = new BlindPolicy(false);
 }

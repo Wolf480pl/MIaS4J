@@ -21,7 +21,7 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 
-import com.github.wolf480pl.sandbox.core.rewrite.RewritePolicy;
+import com.github.wolf480pl.sandbox.core.rewrite.BlindPolicy;
 
 public class Rewrite {
 
@@ -31,7 +31,7 @@ public class Rewrite {
             bypass = args[2].equalsIgnoreCase("true");
         }
         FileInputStream fis = new FileInputStream(args[0]);
-        Transformer t = bypass ? new Transformer(RewritePolicy.NEVER_INTERCEPT) : new Transformer();
+        Transformer t = bypass ? new Transformer(BlindPolicy.NEVER_INTERCEPT) : new Transformer();
         // Transformer t = bypass ? new Transformer(new ChangeMindPolicy(false)) : new Transformer(new ChangeMindPolicy(true));
         FileOutputStream fos = new FileOutputStream(args[1]);
         fos.write(t.transform("", fis));

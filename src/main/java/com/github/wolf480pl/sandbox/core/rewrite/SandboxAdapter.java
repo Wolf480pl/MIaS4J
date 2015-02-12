@@ -52,7 +52,7 @@ public class SandboxAdapter extends ClassVisitor {
     private Type clazz;
 
     public SandboxAdapter(ClassVisitor cv) {
-        this(cv, RewritePolicy.ALWAYS_INTERCEPT);
+        this(cv, BlindPolicy.ALWAYS_INTERCEPT);
     }
 
     public SandboxAdapter(ClassVisitor cv, RewritePolicy policy) {

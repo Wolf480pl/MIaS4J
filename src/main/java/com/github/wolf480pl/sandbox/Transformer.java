@@ -24,6 +24,7 @@ import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.ClassWriter;
 
+import com.github.wolf480pl.sandbox.core.rewrite.BlindPolicy;
 import com.github.wolf480pl.sandbox.core.rewrite.RewritePolicy;
 import com.github.wolf480pl.sandbox.core.rewrite.SandboxAdapter;
 
@@ -31,7 +32,7 @@ public class Transformer {
     private final RewritePolicy policy;
 
     public Transformer() {
-        this(RewritePolicy.ALWAYS_INTERCEPT);
+        this(BlindPolicy.ALWAYS_INTERCEPT);
     }
 
     public Transformer(RewritePolicy policy) {

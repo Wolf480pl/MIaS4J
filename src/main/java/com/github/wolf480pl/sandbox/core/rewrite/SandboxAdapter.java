@@ -267,8 +267,22 @@ public class SandboxAdapter extends ClassVisitor {
         @Override
         public void visitInvokeDynamicInsn(String name, String desc, Handle bsm, Object... bsmArgs) {
             labels.clear();
-            // TODO
-            super.visitInvokeDynamicInsn(name, desc, bsm, bsmArgs);
+
+            Type methType = Type.getMethodType(desc);
+            Handle newBsm;
+            List<Object> newBsmArgs = new ArrayList<>(5);
+            try {
+                newBsm = policy.interceptDynamic(clazz, name, methType, bsm, bsmArgs, newBsmArgs); // null means don't rewrite
+            } catch (RewriteAbortException e) {
+                throw new WrappedCheckedException(e);
+            }
+
+            if (newBsm != null) {
+                mv.visitInvokeDynamicInsn(name, desc, newBsm, newBsmArgs.toArray());
+                return;
+            }
+
+            mv.visitInvokeDynamicInsn(name, desc, bsm, bsmArgs);
         }
 
         @Override

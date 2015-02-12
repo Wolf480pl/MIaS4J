@@ -17,6 +17,9 @@
  */
 package com.github.wolf480pl.sandbox.core.rewrite;
 
+import java.util.List;
+
+import org.objectweb.asm.Handle;
 import org.objectweb.asm.Type;
 
 import com.github.wolf480pl.sandbox.core.InvocationType;
@@ -24,7 +27,7 @@ import com.github.wolf480pl.sandbox.core.InvocationType;
 public interface RewritePolicy {
 
     /**
-     * If invokation type is INVOKENEWSPECIAL, desc is null, (and name is {@code <init>}, then the exact signature of the initializer hasn't been determined yet. Returning true may result in another query for the same constructor but this time with a full method signature.
+     * If invocation type is INVOKENEWSPECIAL, desc is null, (and name is {@code <init>}, then the exact signature of the initializer hasn't been determined yet. Returning true may result in another query for the same constructor but this time with a full method signature.
      *
      * @param caller
      * @param type
@@ -36,6 +39,8 @@ public interface RewritePolicy {
      */
     boolean shouldIntercept(Type caller, InvocationType type, Type owner, String name, Type desc) throws RewriteAbortException;
 
+    Handle interceptDynamic(Type caller, String name, Type desc, Handle bootstrapMethod, Object[] bootstrapArgs, List<Object> newBootrstrapArgs) throws RewriteAbortException;
+
     public static class BlindPolicy implements RewritePolicy {
         private final boolean should;
 
@@ -46,6 +51,11 @@ public interface RewritePolicy {
         @Override
         public boolean shouldIntercept(Type caller, InvocationType type, Type owner, String name, Type desc) throws RewriteAbortException {
             return should;
+        }
+
+        @Override
+        public Handle interceptDynamic(Type caller, String name, Type desc, Handle bootstrapMethod, Object[] bootstrapArgs, List<Object> newBootstrapArgs) {
+            return null; // TODO
         }
     }
 

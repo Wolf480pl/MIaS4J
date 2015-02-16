@@ -114,9 +114,23 @@ public class Bootstraps {
         return new ConstantCallSite(handle);
     }
 
-    public static CallSite wrapInvokeDynamic(MethodHandles.Lookup caller, String invokedName, MethodType invokedType, Object... args) {
-        // TODO
-        return null;
+    public static final String WRAPDYNAMIC_NAME = "wrapInvokeDynamic";
+
+    public static CallSite wrapInvokeDynamic(MethodHandles.Lookup caller, String invokedName, MethodType invokedType, int bsmOpcode, String bsmOwner, String bsmName, MethodType bsmType,
+            Object... args) throws Throwable {
+        InvocationType invType = InvocationType.fromID(bsmOpcode);
+        if (invType == null) {
+            throw new IllegalArgumentException("Invalid InvocationType ID: " + bsmOpcode);
+        }
+
+        MethodHandle bsm = makeHandle(caller, bsmName, bsmType, invType, bsmOwner, bsmType);
+
+        Object[] newArgs = new Object[args.length + 3];
+        newArgs[0] = caller;
+        newArgs[1] = invokedName;
+        newArgs[2] = invokedType;
+        System.arraycopy(args, 0, newArgs, 3, args.length);
+        return (CallSite) bsm.invokeWithArguments(newArgs);
     }
 
     public static final String WRAPHANDLE_NAME = "wrapHandle";

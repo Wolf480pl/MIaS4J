@@ -17,16 +17,13 @@
  */
 package com.github.wolf480pl.sandbox;
 
-import java.util.List;
-
-import org.objectweb.asm.Handle;
 import org.objectweb.asm.Type;
 
 import com.github.wolf480pl.sandbox.core.InvocationType;
+import com.github.wolf480pl.sandbox.core.rewrite.AbstractRewritePolicy;
 import com.github.wolf480pl.sandbox.core.rewrite.RewriteAbortException;
-import com.github.wolf480pl.sandbox.core.rewrite.RewritePolicy;
 
-public class ChangeMindPolicy implements RewritePolicy {
+public class ChangeMindPolicy extends AbstractRewritePolicy {
     private final boolean eventualDecision;
 
     public ChangeMindPolicy(boolean eventualDecision) {
@@ -39,11 +36,6 @@ public class ChangeMindPolicy implements RewritePolicy {
             return !eventualDecision;
         }
         return eventualDecision;
-    }
-
-    @Override
-    public Handle interceptDynamic(Type caller, String name, Type desc, Handle bootstrapMethod, Object[] bootstrapArgs, List<Object> newBootstrapArgs) throws RewriteAbortException {
-        return null;
     }
 
 }

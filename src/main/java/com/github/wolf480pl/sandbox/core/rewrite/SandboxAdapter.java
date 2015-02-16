@@ -95,6 +95,10 @@ public class SandboxAdapter extends ClassVisitor {
         public static final String WRAPHANDLE_DESC = Type.getMethodDescriptor(getType(CallSite.class), getType(MethodHandles.Lookup.class), getType(String.class), getType(MethodType.class),
                 Type.INT_TYPE, getType(String.class), getType(MethodType.class));
 
+        public static final String WRAPDYNAMIC_NAME = Bootstraps.WRAPDYNAMIC_NAME;
+        public static final String WRAPDYNAMIC_DESC = Type.getMethodDescriptor(getType(CallSite.class), getType(MethodHandles.Lookup.class), getType(String.class), getType(MethodType.class),
+                Type.INT_TYPE, getType(String.class), getType(String.class), getType(MethodType.class), getType(Object[].class));
+
         public static final String[] ARGPACK_NAMES = makeArgPackNameTable();
         public static final String[] ARGPACK_DESCS;
 

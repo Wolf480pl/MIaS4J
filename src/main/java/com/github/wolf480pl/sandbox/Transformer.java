@@ -27,12 +27,13 @@ import org.objectweb.asm.ClassWriter;
 import com.github.wolf480pl.sandbox.core.rewrite.BlindPolicy;
 import com.github.wolf480pl.sandbox.core.rewrite.RewritePolicy;
 import com.github.wolf480pl.sandbox.core.rewrite.SandboxAdapter;
+import com.github.wolf480pl.sandbox.java8.rewrite.WrapperDynamicRewritePolicy;
 
 public class Transformer {
     private final RewritePolicy policy;
 
     public Transformer() {
-        this(BlindPolicy.ALWAYS_INTERCEPT);
+        this(wrapIfJava8(BlindPolicy.ALWAYS_INTERCEPT));
     }
 
     public Transformer(RewritePolicy policy) {
@@ -53,5 +54,13 @@ public class Transformer {
         ClassVisitor checker = new org.objectweb.asm.util.CheckClassAdapter(visitor);
         reader.accept(checker, ClassReader.SKIP_DEBUG | ClassReader.EXPAND_FRAMES);
         return writer;
+    }
+
+    public static RewritePolicy wrapIfJava8(RewritePolicy policy) {
+        if (System.getProperty("java.vm.specification.version").equals("1.8")) {
+            // It's JVM 8
+            return new WrapperDynamicRewritePolicy(policy);
+        }
+        return policy;
     }
 }

@@ -15,36 +15,24 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package com.github.wolf480pl.sandbox;
+package com.github.wolf480pl.sandbox.java8.rewrite;
 
-import java.util.List;
-
-import org.objectweb.asm.Handle;
 import org.objectweb.asm.Type;
 
 import com.github.wolf480pl.sandbox.core.InvocationType;
 import com.github.wolf480pl.sandbox.core.rewrite.RewriteAbortException;
 import com.github.wolf480pl.sandbox.core.rewrite.RewritePolicy;
 
-public class ChangeMindPolicy implements RewritePolicy {
-    private final boolean eventualDecision;
+public class WrapperDynamicRewritePolicy extends AbstractDynamicRewritePolicy {
+    private final RewritePolicy policy;
 
-    public ChangeMindPolicy(boolean eventualDecision) {
-        this.eventualDecision = eventualDecision;
+    public WrapperDynamicRewritePolicy(RewritePolicy policy) {
+        this.policy = policy;
     }
 
     @Override
     public boolean shouldIntercept(Type caller, InvocationType type, Type owner, String name, Type desc) throws RewriteAbortException {
-        if (type == InvocationType.INVOKENEWSPECIAL && desc == null) {
-            return !eventualDecision;
-        }
-        return eventualDecision;
-    }
-
-    @Override
-    public Handle interceptDynamic(Type caller, String name, Type desc, Handle bootstrapMethod, Object[] bootstrapArgs, List<Object> newBootstrapArgs) throws RewriteAbortException {
-        // TODO: implement this method
-        throw new RewriteAbortException("InvokeDynamic handling not implemented yet");
+        return policy.shouldIntercept(caller, type, owner, name, desc);
     }
 
 }

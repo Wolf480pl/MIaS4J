@@ -40,6 +40,9 @@ public class BlindPolicy implements RewritePolicy {
 
     @Override
     public Handle interceptDynamic(Type caller, String name, Type desc, Handle bootstrapMethod, Object[] bootstrapArgs, List<Object> newBootstrapArgs) throws RewriteAbortException {
+        if (!should) {
+            return null;
+        }
         // TODO: implement this method
         throw new RewriteAbortException("InvokeDynamic handling not implemented yet");
     }

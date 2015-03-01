@@ -1,0 +1,4 @@
+TestMH wants java.io.PrintStream.println (String)void
+TestMH wants java.lang.invoke.MethodHandle.invoke (PrintStream,String)void
+hey
+bye

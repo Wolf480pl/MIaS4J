@@ -1,0 +1,9 @@
+TestDynamic wants TestDynamic.<init> ()void
+TestDynamic wants super java.lang.Object.init ()void
+TestDynamic after super java.lang.Object.init ()void
+TestDynamic wants TestDynamic.bootstrap (Lookup,String,MethodType,MethodType)CallSite
+TestDynamic wants java.lang.invoke.MethodHandles$Lookup.findSpecial (Class,String,MethodType,Class)MethodHandle
+TestDynamic wants java.lang.invoke.ConstantCallSite.<init> (MethodHandle)void
+TestDynamic wants java.io.PrintStream.println (String)void
+hi
+bye

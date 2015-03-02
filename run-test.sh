@@ -12,7 +12,7 @@ CMD="mvn-run-test $DEBUG com.github.wolf480pl.sandbox.Wrap $1"
 
 case $TEST_ID in
   1)
-    $CMD example/target/classes/ Test1
+    $CMD test-subjects/java7/target/classes/ Test1
     ;;
   2)
     $CMD target/test-subjects/ TestMH

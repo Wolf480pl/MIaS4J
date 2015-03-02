@@ -22,6 +22,15 @@
     <commit>unknown</commit>
   </properties>
   
+  <!-- License information -->
+  <licenses>
+    <license>
+      <name>MIT License</name>
+      <url>https://raw.githubusercontent.com/Wolf480pl/Sandbox/master/test-subjects/LICENSE</url>
+      <distribution>repo</distribution>
+    </license>
+  </licenses>
+
   <!-- Dependency repositories -->
   <repositories>
     <repository>

@@ -25,18 +25,18 @@ import com.github.wolf480pl.sandbox.core.runtime.RuntimePolicy.LoggingPolicy;
 import com.github.wolf480pl.sandbox.core.runtime.RuntimePolicy.PassthruPolicy;
 import com.github.wolf480pl.sandbox.util.AbstractTransformingClassLoader;
 
-public class SandboxClassLoader1 extends AbstractTransformingClassLoader {
+public class SandboxClassLoader extends AbstractTransformingClassLoader {
     private final Transformer transformer;
     private final BMClassLoader bmLoader;
 
-    public SandboxClassLoader1(Transformer transformer, SecureClassLoader backend) {
+    public SandboxClassLoader(Transformer transformer, SecureClassLoader backend) {
         super(backend);
         this.transformer = transformer;
         this.bmLoader = new BMClassLoader(getParent());
         bmLoader.setRuntimePolicy(new LoggingPolicy(new PassthruPolicy()));
     }
 
-    public SandboxClassLoader1(Transformer transformer, SecureClassLoader backend, ClassLoader parent) {
+    public SandboxClassLoader(Transformer transformer, SecureClassLoader backend, ClassLoader parent) {
         super(backend, parent);
         this.transformer = transformer;
         this.bmLoader = new BMClassLoader(getParent());

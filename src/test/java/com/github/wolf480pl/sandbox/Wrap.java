@@ -62,7 +62,7 @@ public class Wrap {
     }
 
     public static ClassLoader makeSandboxClassLoader(URL[] urls, Transformer t) {
-        return new SandboxClassLoader1(t, new URLClassLoader(urls, new NullClassLoader()), Wrap.class.getClassLoader());
+        return new SandboxClassLoader(t, new URLClassLoader(urls, new NullClassLoader()), Wrap.class.getClassLoader());
     }
 
 }

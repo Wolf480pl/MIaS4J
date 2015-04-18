@@ -2,21 +2,21 @@
   <modelVersion>4.0.0</modelVersion>
   
   <!-- Project information -->
-  <name>sandbox-example</name>
-  <groupId>com.github.wolf480pl.sandbox</groupId>
+  <name>MIaS4J java7 test subject</name>
+  <groupId>com.github.wolf480pl.mias4j</groupId>
   <artifactId>test-subject-java7</artifactId>
   <version>0.1.0-SNAPSHOT</version>
   <url>http://github.com/Wolf480pl/${repoName}</url>
   <inceptionYear>2014</inceptionYear>
   <packaging>jar</packaging>
-  <description>Test subjects for an alternative Java sandbox based on bytecode rewrite</description>
+  <description>Test subjects for MIaS4J</description>
 
   <!-- Build properties -->
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <author>Wolf480pl</author>
     <email>wolf480@interia.pl</email>
-    <repoName>Sandbox</repoName>
+    <repoName>MIaS4J</repoName>
     <ciSystem>unknown</ciSystem>
     <buildNumber>0</buildNumber>
     <commit>unknown</commit>
@@ -26,7 +26,7 @@
   <licenses>
     <license>
       <name>MIT License</name>
-      <url>https://raw.githubusercontent.com/Wolf480pl/Sandbox/master/test-subjects/LICENSE</url>
+      <url>https://raw.githubusercontent.com/Wolf480pl/${repoName}/master/test-subjects/LICENSE</url>
       <distribution>repo</distribution>
     </license>
   </licenses>

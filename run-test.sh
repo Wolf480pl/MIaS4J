@@ -8,7 +8,7 @@ fi
 TEST_ID=$1
 shift
 
-CMD="mvn-run-test $DEBUG com.github.wolf480pl.sandbox.Wrap $1"
+CMD="mvn-run-test $DEBUG com.github.wolf480pl.mias4j.Wrap $1"
 
 case $TEST_ID in
   1)

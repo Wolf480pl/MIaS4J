@@ -11,6 +11,12 @@
   <packaging>jar</packaging>
   <description>Method Interception and Sandboxing for Java - an alternative Java sandbox based on bytecode rewrite</description>
 
+  <parent>
+    <groupId>org.sonatype.oss</groupId>
+    <artifactId>oss-parent</artifactId>
+    <version>9</version>
+  </parent>
+
   <!-- Build properties -->
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -49,30 +55,21 @@
   </scm>
   
   <!-- Continuous integration -->
+  <!--
   <ciManagement>
     <system>travis</system>
     <url>https://travis-ci.org/Wolf480pl/${repoName}</url>
   </ciManagement>
+   -->
   
   <!-- Issue tracking -->
   <issueManagement>
     <system>github</system>
     <url>https://github.com/Wolf480pl/${repoName}/issues</url>
   </issueManagement>
-
-  <!-- Dependency repositories -->
-  <repositories>
-    <repository>
-      <id>wolf480pl-repo</id>
-      <url>http://repo.wolf480pl.t28.net/</url>
-      <snapshots>
-        <enabled>true</enabled>
-        <updatePolicy>always</updatePolicy>
-      </snapshots>
-    </repository>
-  </repositories>
   
   <!-- Distrubution repositories -->
+  <!--
   <distributionManagement>
     <snapshotRepository>
       <id>wolf480pl-snapshots</id>
@@ -89,6 +86,7 @@
       <url>dav:http://nex-wolf480pl.rhcloud.com/nexus/content/sites/${project.artifactId}-site/</url>
     </site>
   </distributionManagement>
+   -->
   
   <!-- Dependencies -->
   <dependencies>
@@ -224,7 +222,7 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-release-plugin</artifactId>
-        <version>2.4.1</version>
+        <version>2.5.1</version>
         <configuration>
           <localCheckout>true</localCheckout>
           <pushChanges>false</pushChanges>

@@ -16,7 +16,7 @@ CURRENT_VERSION="`sed -n 's|.*<version>\(.*\)</version>.*|\1|p' pom.xml | awk '{
 
 if [ -z "$NEW_VERSION" ]; then
     RELEASE_VERSION=$(echo $CURRENT_VERSION | perl -pe 's/-SNAPSHOT//')
-    NEW_VERSION="$(echo $RELEASE_VERSION | perl -pe 's{^(([0-9]+\.)+)?([0-9]+)$}{$1 . ($3 + 1)}e')" && NEXT_VERSION="$(echo $NEXT_VERSION | perl -pe 's/-SNAPSHOT//gi')-SNAPSHOT"
+    NEW_VERSION="$(echo $RELEASE_VERSION | perl -pe 's{^(([0-9]+\.)+)?([0-9]+)$}{$1 . ($3 + 1)}e')" && NEW_VERSION="$(echo $NEW_VERSION | perl -pe 's/-SNAPSHOT//gi')-SNAPSHOT"
 fi
 
 if ! $BATCH; then

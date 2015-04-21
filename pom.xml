@@ -5,7 +5,7 @@
   <name>MIaS4J</name>
   <groupId>com.github.wolf480pl</groupId>
   <artifactId>mias4j</artifactId>
-  <version>0.1.0</version>
+  <version>0.1.1-SNAPSHOT</version>
   <url>http://github.com/Wolf480pl/${repoName}</url>
   <inceptionYear>2014</inceptionYear>
   <packaging>jar</packaging>

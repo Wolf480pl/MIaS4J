@@ -15,15 +15,30 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package com.github.wolf480pl.mias4j;
+package com.github.wolf480pl.mias4j.util;
 
-import java.io.IOException;
-import java.io.InputStream;
+public class FilteringClassLoader extends ClassLoader {
+    private final Filter filter;
 
-public interface Transformer {
+    public FilteringClassLoader(Filter filter) {
+        this.filter = filter;
+    }
 
-    byte[] transfrom(String name, byte[] data);
+    public FilteringClassLoader(Filter filter, ClassLoader parent) {
+        super(parent);
+        this.filter = filter;
+    }
 
-    byte[] transform(String name, InputStream is) throws IOException;
+    @Override
+    public Class<?> loadClass(String name, boolean resolve) throws ClassNotFoundException {
+        if (filter.canLoad(name)) {
+            return super.loadClass(name, resolve);
+        }
+        throw new ClassNotFoundException("" + name + " - filtered out."); // will not NPE for null name
+    }
+
+    public static interface Filter {
+        boolean canLoad(String className);
+    }
 
 }

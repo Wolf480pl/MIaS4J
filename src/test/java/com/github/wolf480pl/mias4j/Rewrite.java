@@ -31,8 +31,8 @@ public class Rewrite {
             bypass = args[2].equalsIgnoreCase("true");
         }
         FileInputStream fis = new FileInputStream(args[0]);
-        Transformer t = bypass ? new Transformer(Transformer.wrapIfJava8(BlindPolicy.NEVER_INTERCEPT)) : new Transformer();
-        // Transformer t = bypass ? new Transformer(new ChangeMindPolicy(false)) : new Transformer(new ChangeMindPolicy(true));
+        Transformer t = bypass ? new SandboxTransformer(SandboxTransformer.wrapIfJava8(BlindPolicy.NEVER_INTERCEPT)) : new SandboxTransformer();
+        // Transformer t = bypass ? new SandboxTransformer(new ChangeMindPolicy(false)) : new SandboxTransformer(new ChangeMindPolicy(true));
         FileOutputStream fos = new FileOutputStream(args[1]);
         fos.write(t.transform("", fis));
         fis.close();

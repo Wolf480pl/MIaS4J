@@ -50,8 +50,8 @@ public class Wrap {
         }
 
         Transformer t = null;
-        t = bypass ? new Transformer(Transformer.wrapIfJava8(BlindPolicy.NEVER_INTERCEPT)) : new Transformer();
-        // t = bypass ? new Transformer(new ChangeMindPolicy(false)) : new Transformer(new ChangeMindPolicy(true));
+        t = bypass ? new SandboxTransformer(SandboxTransformer.wrapIfJava8(BlindPolicy.NEVER_INTERCEPT)) : new SandboxTransformer();
+        // t = bypass ? new SandboxTransformer(new ChangeMindPolicy(false)) : new SandboxTransformer(new ChangeMindPolicy(true));
         ClassLoader ldr = makeSandboxClassLoader(urls.toArray(new URL[0]), t);
         Class<?> mainClass = ldr.loadClass(main);
 

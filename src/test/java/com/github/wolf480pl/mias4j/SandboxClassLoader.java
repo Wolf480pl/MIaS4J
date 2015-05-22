@@ -23,9 +23,9 @@ import java.security.SecureClassLoader;
 import com.github.wolf480pl.mias4j.core.runtime.BMClassLoader;
 import com.github.wolf480pl.mias4j.core.runtime.RuntimePolicy.LoggingPolicy;
 import com.github.wolf480pl.mias4j.core.runtime.RuntimePolicy.PassthruPolicy;
-import com.github.wolf480pl.mias4j.util.AbstractTransformingClassLoader;
+import com.github.wolf480pl.mias4j.util.BestEffortTransformingClassLoader;
 
-public class SandboxClassLoader extends AbstractTransformingClassLoader {
+public class SandboxClassLoader extends BestEffortTransformingClassLoader {
     private final Transformer transformer;
     private final BMClassLoader bmLoader;
 

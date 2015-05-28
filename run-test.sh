@@ -1,12 +1,13 @@
 #!/bin/sh
 
+TEST_ID=$1
+shift
+
 if [ "-d" = "$1" ]; then
   DEBUG="-Xdebug -Xrunjdwp:transport=dt_socket,address=8001,server=y"
   shift
 fi
 
-TEST_ID=$1
-shift
 
 CMD="mvn-run-test $DEBUG com.github.wolf480pl.mias4j.Wrap $1"
 

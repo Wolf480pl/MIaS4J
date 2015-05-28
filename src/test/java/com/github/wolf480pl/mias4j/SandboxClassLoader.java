@@ -45,7 +45,7 @@ public class SandboxClassLoader extends AbstractTransformingClassLoader {
 
     @Override
     protected byte[] transform(String name, byte[] bytes, CodeSource cs) {
-        return transformer.transfrom(name, bytes);
+        return transformer.transform(name, bytes);
     }
 
     @Override

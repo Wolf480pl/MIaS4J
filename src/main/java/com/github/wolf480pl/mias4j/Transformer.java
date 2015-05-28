@@ -40,7 +40,7 @@ public class Transformer {
         this.policy = policy;
     }
 
-    public byte[] transfrom(String name, byte[] data) {
+    public byte[] transform(String name, byte[] data) {
         return transform(name, new ClassReader(data)).toByteArray();
     }
 

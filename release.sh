@@ -31,7 +31,7 @@ if [ "$1" != "-m" ]; then
         TARGET_BRANCH="$CUR_BRANCH"
     fi
     echo "Merging $RELEASE_BRANCH to $TARGET_BRANCH"
-    git merge --no-ff "$RELEASE_BRANCH"
+    git merge --no-ff --no-edit "$RELEASE_BRANCH"
 fi
 
 echo "Getting current version from pom.xml"
@@ -89,7 +89,12 @@ git add -u . && git commit --amend -m "Release version $RELEASE_VERSION [ci skip
 #git push -qf https://$GITHUB_TOKEN@github.com/$TRAVIS_REPO_SLUG.git HEAD:master || die_with "Failed to push the commit!"
 
 echo "Tagging the release with git"
-git tag -f $TAG_NAME || die_with "Failed to create tag $TAG_NAME!"
+if $BATCH; then
+  TAGOPTS=''
+else
+  TAGOPTS='-a'
+fi
+git tag $TAGOPTS -f $TAG_NAME || die_with "Failed to create tag $TAG_NAME!"
 #git tag -f $RELEASE_VERSION && git push -q --tags https://$GITHUB_TOKEN@github.com/$TRAVIS_REPO_SLUG.git || die_with "Failed to create tag $RELEASE_VERSION!"
 #echo $RELEASE_VERSION > $TRAVIS_BUILD_DIR/version.txt
 

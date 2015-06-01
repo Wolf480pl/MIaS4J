@@ -62,9 +62,10 @@ if [ $NEXT_VERSION = "${RELEASE_VERSION}-SNAPSHOT" ]; then die_with "Release ver
 
 echo "Using $RELEASE_VERSION for release, tag name: $TAG_NAME" && echo "Using $NEXT_VERSION for next development version"
 
-git fetch --tags && if [ $(git tag -l $RELEASE_VERSION | wc -l) != "0" ]; then die_with "A tag already exists $CURRENT_VERSION for the release version $RELEASE_VERSION!"; fi
+git fetch --tags
+if [ $(git tag -l $RELEASE_VERSION | wc -l) != "0" ]; then die_with "A tag already exists $CURRENT_VERSION for the release version $RELEASE_VERSION!"; fi
 
-git fetch origin refs/heads/release/$RELEASE_VERSION:refs/heads/release/$RELEASE_VERSION
+#git fetch origin refs/heads/$RELEASE_BRANCH:refs/heads/$RELEASE_BRANCH
 
 echo "Updating project version and SCM information"
 mvn -B release:clean release:prepare -DreleaseVersion=$RELEASE_VERSION -DdevelopementVersion=$NEXT_VERSION -DpushChanges=false -Darguments="-Dgpg.skip" -Dtag="$TAG_NAME" || die_with "Failed to prepare release!"
@@ -72,7 +73,7 @@ echo "Removing commit with the development version"
 git reset --hard HEAD^
 
 echo "Squashing the merge commit into the release commit"
-TARGET_COMMIT=`git rev-parse HEAD` git filter-branch -f --commit-filter 'if [ "$GIT_COMMIT" = "$TARGET_COMMIT" ]; then git_commit_non_empty_tree "$@"; else skip_commit "$@"; fi' -- HEAD^^..HEAD --not release/$RELEASE_VERSION
+TARGET_COMMIT=`git rev-parse HEAD` git filter-branch -f --commit-filter 'if [ "$GIT_COMMIT" = "$TARGET_COMMIT" ]; then git_commit_non_empty_tree "$@"; else skip_commit "$@"; fi' -- HEAD^^..HEAD --not $RELEASE_BRANCH
 
 #echo "Building, generating, and deploying artifacts"
 #mvn package -DbuildNumber=$TRAVIS_BUILD_NUMBER -DciSystem=travis -Dcommit=${TRAVIS_COMMIT:0:7} site javadoc:jar source:jar gpg:sign deploy --settings $HOME/build/flow/travis/settings.xml -Dgpg.name=ED997FF2 -Dgpg.passphrase=$SIGNING_PASSWORD -Dgpg.publicKeyring=$HOME/build/flow/travis/pubring.gpg -Dgpg.secretKeyring=$HOME/build/flow/travis/secring.gpg || die_with "Failed to build/deploy artifacts!"

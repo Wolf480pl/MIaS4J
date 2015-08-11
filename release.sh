@@ -31,7 +31,7 @@ if [ "$1" != "-m" ]; then
         TARGET_BRANCH="$CUR_BRANCH"
     fi
     echo "Merging $RELEASE_BRANCH to $TARGET_BRANCH"
-    git merge --no-ff "$RELEASE_BRANCH"
+    git merge --no-ff --no-edit "$RELEASE_BRANCH"
 fi
 
 echo "Getting current version from pom.xml"
@@ -62,9 +62,10 @@ if [ $NEXT_VERSION = "${RELEASE_VERSION}-SNAPSHOT" ]; then die_with "Release ver
 
 echo "Using $RELEASE_VERSION for release, tag name: $TAG_NAME" && echo "Using $NEXT_VERSION for next development version"
 
-git fetch --tags && if [ $(git tag -l $RELEASE_VERSION | wc -l) != "0" ]; then die_with "A tag already exists $CURRENT_VERSION for the release version $RELEASE_VERSION!"; fi
+git fetch --tags
+if [ $(git tag -l $RELEASE_VERSION | wc -l) != "0" ]; then die_with "A tag already exists $CURRENT_VERSION for the release version $RELEASE_VERSION!"; fi
 
-git fetch origin refs/heads/release/$RELEASE_VERSION:refs/heads/release/$RELEASE_VERSION
+#git fetch origin refs/heads/$RELEASE_BRANCH:refs/heads/$RELEASE_BRANCH
 
 echo "Updating project version and SCM information"
 mvn -B release:clean release:prepare -DreleaseVersion=$RELEASE_VERSION -DdevelopementVersion=$NEXT_VERSION -DpushChanges=false -Darguments="-Dgpg.skip" -Dtag="$TAG_NAME" || die_with "Failed to prepare release!"
@@ -72,7 +73,7 @@ echo "Removing commit with the development version"
 git reset --hard HEAD^
 
 echo "Squashing the merge commit into the release commit"
-TARGET_COMMIT=`git rev-parse HEAD` git filter-branch -f --commit-filter 'if [ "$GIT_COMMIT" = "$TARGET_COMMIT" ]; then git_commit_non_empty_tree "$@"; else skip_commit "$@"; fi' -- HEAD^^..HEAD --not release/$RELEASE_VERSION
+TARGET_COMMIT=`git rev-parse HEAD` git filter-branch -f --commit-filter 'if [ "$GIT_COMMIT" = "$TARGET_COMMIT" ]; then git_commit_non_empty_tree "$@"; else skip_commit "$@"; fi' -- HEAD^^..HEAD --not $RELEASE_BRANCH
 
 #echo "Building, generating, and deploying artifacts"
 #mvn package -DbuildNumber=$TRAVIS_BUILD_NUMBER -DciSystem=travis -Dcommit=${TRAVIS_COMMIT:0:7} site javadoc:jar source:jar gpg:sign deploy --settings $HOME/build/flow/travis/settings.xml -Dgpg.name=ED997FF2 -Dgpg.passphrase=$SIGNING_PASSWORD -Dgpg.publicKeyring=$HOME/build/flow/travis/pubring.gpg -Dgpg.secretKeyring=$HOME/build/flow/travis/secring.gpg || die_with "Failed to build/deploy artifacts!"
@@ -88,7 +89,12 @@ git add -u . && git commit --amend -m "Release version $RELEASE_VERSION [ci skip
 #git push -qf https://$GITHUB_TOKEN@github.com/$TRAVIS_REPO_SLUG.git HEAD:master || die_with "Failed to push the commit!"
 
 echo "Tagging the release with git"
-git tag -f $TAG_NAME || die_with "Failed to create tag $TAG_NAME!"
+if $BATCH; then
+  TAGOPTS=''
+else
+  TAGOPTS='-a'
+fi
+git tag $TAGOPTS -f $TAG_NAME || die_with "Failed to create tag $TAG_NAME!"
 #git tag -f $RELEASE_VERSION && git push -q --tags https://$GITHUB_TOKEN@github.com/$TRAVIS_REPO_SLUG.git || die_with "Failed to create tag $RELEASE_VERSION!"
 #echo $RELEASE_VERSION > $TRAVIS_BUILD_DIR/version.txt
 

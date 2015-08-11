@@ -59,11 +59,11 @@ public class Bootstraps {
             throw new IllegalArgumentException("Invalid InvocationType ID: " + opcode);
         }
 
-        MethodHandle handle = makeHandle(caller, invokedName, invokedType, invType, owner, originalType);
+        MethodHandle handle = makeHandle(caller, invokedName, invType, owner, originalType).asType(invokedType);
         return new ConstantCallSite(handle);
     }
 
-    public static MethodHandle makeHandle(MethodHandles.Lookup caller, String invokedName, MethodType invokedType, InvocationType invType, String owner, MethodType originalType) throws NoSuchMethodException,
+    public static MethodHandle makeHandle(MethodHandles.Lookup caller, String invokedName, InvocationType invType, String owner, MethodType originalType) throws NoSuchMethodException,
             IllegalAccessException, ClassNotFoundException {
 
         return policy.intercept(caller, new MethodHandlePrototype(invType, owner, invokedName, originalType));
@@ -123,7 +123,7 @@ public class Bootstraps {
             throw new IllegalArgumentException("Invalid InvocationType ID: " + bsmOpcode);
         }
 
-        MethodHandle bsm = makeHandle(caller, bsmName, bsmType, invType, bsmOwner, bsmType);
+        MethodHandle bsm = makeHandle(caller, bsmName, invType, bsmOwner, bsmType);
 
         Object[] newArgs = new Object[args.length + 3];
         newArgs[0] = caller;
@@ -142,7 +142,7 @@ public class Bootstraps {
             throw new IllegalArgumentException("Invalid InvocationType ID: " + opcode);
         }
 
-        MethodHandle handle = makeHandle(caller, invokedName, invokedType, invType, owner, originalType);
+        MethodHandle handle = makeHandle(caller, invokedName, invType, owner, originalType);
         return new ConstantCallSite(MethodHandles.constant(MethodHandle.class, handle));
     }
 
